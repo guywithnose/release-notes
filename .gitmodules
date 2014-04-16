@@ -1,0 +1,3 @@
+[submodule "vgng"]
+	path = vgng
+	url = git@github.com:nullpuppy/vgng.git
