@@ -63,7 +63,7 @@ $randomName = exec("cd {$randomNameDir}; ./vgng.py");
 
 $postData = [
     'tag_name' => $nextTagName,
-    'name' => "Version {$nextVersionNumber} -- $randomName",
+    'name' => "Version {$nextVersionNumber}: $randomName",
     'body' => trim($releaseNotes),
     'draft' => true
 ];
