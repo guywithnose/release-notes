@@ -7,7 +7,7 @@ use GuzzleHttp\Exception\ClientException;
 
 if ($argc != 3) {
     file_put_contents('php://stderr', "Usage: {$argv[0]} {repo_owner} {repo_name}\n");
-    exit();
+    exit(1);
 }
 
 $owner = $argv[1];
@@ -41,7 +41,7 @@ try {
     $commits = getCommitsSinceTag($client, $owner, $repo, $tagName);
 } catch (ClientException $e) {
     file_put_contents('php://stderr', "There was a problem accessing the last release.  Is it possible that a draft has already been created?\n");
-    exit();
+    exit(1);
 }
 
 $releaseNotes = '';
