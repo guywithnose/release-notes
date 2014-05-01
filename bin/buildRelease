@@ -38,15 +38,14 @@ $releases = $res->json();
 $tagName = $releases[0]['tag_name'];
 
 try {
-    $res = $client->get("repos/{$owner}/{$repo}/compare/{$tagName}...master");
-    $commits = $res->json();
+    $commits = getCommitsSinceTag($client, $owner, $repo, $tagName);
 } catch (ClientException $e) {
     file_put_contents('php://stderr', "There was a problem accessing the last release.  Is it possible that a draft has already been created?\n");
     exit();
 }
 
 $releaseNotes = '';
-foreach ($commits['commits'] as $commit) {
+foreach ($commits as $commit) {
     if (count($commit['parents']) == 2) {
         preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches);
         $prNum = $matches[1];
@@ -74,4 +73,9 @@ function getNextTagName($tagName) {
     $parts = explode('.', $tagName);
     $parts[count($parts) - 1]++;
     return implode('.', $parts);
+}
+
+function getCommitsSinceTag(Client $client, $owner, $repo, $tagName)
+{
+    return $client->get("repos/{$owner}/{$repo}/compare/{$tagName}...master")->json()['commits'];
 }
