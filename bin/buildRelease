@@ -45,13 +45,8 @@ try {
 }
 
 $releaseNotes = '';
-foreach ($commits as $commit) {
-    if (count($commit['parents']) == 2) {
-        preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches);
-        $prNum = $matches[1];
-        $message = $matches[2];
-        $releaseNotes .= "* {$message}&nbsp;<sup>[PR&nbsp;#{$prNum}]</sup>\n";
-    }
+foreach (getPullRequests($commits) as $pullRequest) {
+    $releaseNotes .= "* {$pullRequest['message']}&nbsp;<sup>[PR&nbsp;#{$pullRequest['number']}]</sup>\n";
 }
 
 $nextTagName = getNextTagName($tagName);
@@ -78,4 +73,19 @@ function getNextTagName($tagName) {
 function getCommitsSinceTag(Client $client, $owner, $repo, $tagName)
 {
     return $client->get("repos/{$owner}/{$repo}/compare/{$tagName}...master")->json()['commits'];
+}
+
+function getPullRequests(array $commits)
+{
+    $results = [];
+    foreach ($commits as $commit) {
+        if (
+            count($commit['parents']) === 2 &&
+            preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)
+        ) {
+            $results[] = ['number' => $matches[1], 'message' => $matches[2]];
+        }
+    }
+
+    return $results;
 }
