@@ -42,10 +42,7 @@ try {
     exit(1);
 }
 
-$releaseNotes = '';
-foreach (getPullRequests($commits) as $pullRequest) {
-    $releaseNotes .= "* {$pullRequest['message']}&nbsp;<sup>[PR&nbsp;#{$pullRequest['number']}]</sup>\n";
-}
+$releaseNotes = implode("\n", array_map('formatPullRequest', getPullRequests($commits)));
 
 $nextTagName = getNextTagName($tagName);
 $nextVersionNumber = preg_replace('#[^0-9\.]#', '', $nextTagName);
@@ -53,12 +50,7 @@ $nextVersionNumber = preg_replace('#[^0-9\.]#', '', $nextTagName);
 $randomNameDir = dirname(__DIR__) . '/vgng';
 $randomName = exec("cd {$randomNameDir}; ./vgng.py");
 
-$postData = [
-    'tag_name' => $nextTagName,
-    'name' => "Version {$nextVersionNumber}: {$randomName}",
-    'body' => trim($releaseNotes),
-    'draft' => true,
-];
+$postData = ['tag_name' => $nextTagName, 'name' => "Version {$nextVersionNumber}: {$randomName}", 'body' => $releaseNotes, 'draft' => true];
 
 $client->post("/repos/{$owner}/{$repo}/releases", ['body' => json_encode($postData)]);
 
@@ -87,4 +79,9 @@ function getPullRequests(array $commits)
     }
 
     return $results;
+}
+
+function formatPullRequest($pullRequest)
+{
+    return "* {$pullRequest['message']}&nbsp;<sup>[PR&nbsp;#{$pullRequest['number']}]</sup>";
 }
