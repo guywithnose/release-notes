@@ -34,7 +34,7 @@ function getToken($cacheFile)
     }
 
     if (!$token) {
-        $token = readline("Please enter a github access token:\n");
+        $token = readline('Please enter a github access token: ');
         file_put_contents($cacheFile, $token);
     }
 
