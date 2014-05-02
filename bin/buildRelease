@@ -14,17 +14,7 @@ if ($argc != 3) {
 
 $owner = $argv[1];
 $repo = $argv[2];
-
-$token = '';
-$tokenFile = dirname(__DIR__) . '/.access_token';
-if (file_exists($tokenFile)) {
-    $token = file_get_contents($tokenFile);
-}
-
-if (!$token) {
-    $token = readline("Please enter a github access token:\n");
-    file_put_contents($tokenFile, $token);
-}
+$token = getToken(dirname(__DIR__) . '/.access_token');
 
 $client = new Client(['base_url' => 'https://api.github.com/', 'defaults' => ['headers' => ['Authorization' => "token {$token}"]]]);
 
@@ -51,6 +41,21 @@ $randomName = exec("cd {$randomNameDir}; ./vgng.py");
 $postData = ['tag_name' => $nextTagName, 'name' => "Version {$nextVersionNumber}: {$randomName}", 'body' => $releaseNotes, 'draft' => true];
 
 $client->post("/repos/{$owner}/{$repo}/releases", ['body' => json_encode($postData)]);
+
+function getToken($cacheFile)
+{
+    $token = null;
+    if (file_exists($cacheFile)) {
+        $token = file_get_contents($cacheFile);
+    }
+
+    if (!$token) {
+        $token = readline("Please enter a github access token:\n");
+        file_put_contents($cacheFile, $token);
+    }
+
+    return $token;
+}
 
 function incrementVersion($tagName)
 {
