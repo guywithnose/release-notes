@@ -24,12 +24,7 @@ if (!$token) {
     file_put_contents($tokenFile, $token);
 }
 
-$client = new Client([
-    'base_url' => 'https://api.github.com/',
-    'defaults' => [
-        'headers' => ['Authorization' => "token {$token}"],
-     ],
-]);
+$client = new Client(['base_url' => 'https://api.github.com/', 'defaults' => ['headers' => ['Authorization' => "token {$token}"]]]);
 
 $res = $client->get("repos/{$owner}/{$repo}/releases");
 
@@ -40,7 +35,10 @@ $tagName = $releases[0]['tag_name'];
 try {
     $commits = getCommitsSinceTag($client, $owner, $repo, $tagName);
 } catch (ClientException $e) {
-    file_put_contents('php://stderr', "There was a problem accessing the last release.  Is it possible that a draft has already been created?\n");
+    file_put_contents(
+        'php://stderr',
+        "There was a problem accessing the last release.  Is it possible that a draft has already been created?\n"
+    );
     exit(1);
 }
 
@@ -57,14 +55,15 @@ $randomName = exec("cd {$randomNameDir}; ./vgng.py");
 
 $postData = [
     'tag_name' => $nextTagName,
-    'name' => "Version {$nextVersionNumber}: $randomName",
+    'name' => "Version {$nextVersionNumber}: {$randomName}",
     'body' => trim($releaseNotes),
-    'draft' => true
+    'draft' => true,
 ];
 
 $client->post("/repos/{$owner}/{$repo}/releases", ['body' => json_encode($postData)]);
 
-function getNextTagName($tagName) {
+function getNextTagName($tagName)
+{
     $parts = explode('.', $tagName);
     $parts[count($parts) - 1]++;
     return implode('.', $parts);
