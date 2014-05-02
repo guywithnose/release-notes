@@ -25,10 +25,9 @@ $releaseNotes = implode("\n", array_map('formatPullRequest', getPullRequests($co
 $nextVersionNumber = incrementVersion(ltrim($tagName, 'v'));
 $nextTagName = "v{$nextVersionNumber}";
 
-$randomNameDir = dirname(__DIR__) . '/vgng';
-$randomName = exec("cd {$randomNameDir}; ./vgng.py");
+$releaseName = getReleaseName();
 
-$postData = ['tag_name' => $nextTagName, 'name' => "Version {$nextVersionNumber}: {$randomName}", 'body' => $releaseNotes, 'draft' => true];
+$postData = ['tag_name' => $nextTagName, 'name' => "Version {$nextVersionNumber}: {$releaseName}", 'body' => $releaseNotes, 'draft' => true];
 $client->api('repo')->releases()->create($owner, $repo, $postData);
 
 function getToken($cacheFile)
@@ -79,4 +78,11 @@ function getPullRequests(array $commits)
 function formatPullRequest($pullRequest)
 {
     return "* {$pullRequest['message']}&nbsp;<sup>[PR&nbsp;#{$pullRequest['number']}]</sup>";
+}
+
+function getReleaseName()
+{
+    $randomNameDir = dirname(__DIR__) . '/vgng';
+
+    return exec("cd {$randomNameDir}; ./vgng.py");
 }
