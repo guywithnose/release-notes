@@ -26,11 +26,7 @@ if (!$token) {
 
 $client = new Client(['base_url' => 'https://api.github.com/', 'defaults' => ['headers' => ['Authorization' => "token {$token}"]]]);
 
-$res = $client->get("repos/{$owner}/{$repo}/releases");
-
-$releases = $res->json();
-
-$tagName = $releases[0]['tag_name'];
+$tagName = $client->get("repos/{$owner}/{$repo}/releases")->json()[0]['tag_name'];
 
 try {
     $commits = getCommitsSinceTag($client, $owner, $repo, $tagName);
