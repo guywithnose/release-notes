@@ -1,5 +1,6 @@
 {
     "require": {
-        "guzzlehttp/guzzle": "~4.0"
+        "guzzlehttp/guzzle": "~4.0",
+        "herrera-io/version": "~1.1"
     }
 }

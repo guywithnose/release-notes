@@ -4,6 +4,8 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use GuzzleHttp\Message\Response;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
+use Herrera\Version\Dumper as VersionDumper;
+use Herrera\Version\Parser as VersionParser;
 
 if ($argc != 3) {
     file_put_contents('php://stderr', "Usage: {$argv[0]} {repo_owner} {repo_name}\n");
@@ -40,8 +42,8 @@ try {
 
 $releaseNotes = implode("\n", array_map('formatPullRequest', getPullRequests($commits)));
 
-$nextTagName = getNextTagName($tagName);
-$nextVersionNumber = preg_replace('#[^0-9\.]#', '', $nextTagName);
+$nextVersionNumber = incrementVersion(ltrim($tagName, 'v'));
+$nextTagName = "v{$nextVersionNumber}";
 
 $randomNameDir = dirname(__DIR__) . '/vgng';
 $randomName = exec("cd {$randomNameDir}; ./vgng.py");
@@ -50,11 +52,14 @@ $postData = ['tag_name' => $nextTagName, 'name' => "Version {$nextVersionNumber}
 
 $client->post("/repos/{$owner}/{$repo}/releases", ['body' => json_encode($postData)]);
 
-function getNextTagName($tagName)
+function incrementVersion($tagName)
 {
-    $parts = explode('.', $tagName);
-    $parts[count($parts) - 1]++;
-    return implode('.', $parts);
+    $version = VersionParser::toBuilder(ltrim($tagName, 'v'));
+    $version->clearBuild();
+    $version->clearPreRelease();
+    $version->incrementPatch();
+
+    return VersionDumper::toString($version);
 }
 
 function getCommitsSinceTag(Client $client, $owner, $repo, $tagName)
