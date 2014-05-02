@@ -1,8 +1,7 @@
 #!/usr/bin/env php
 <?php
 require dirname(__DIR__) . '/vendor/autoload.php';
-use GuzzleHttp\Message\Response;
-use GuzzleHttp\Client;
+use Github\Client as GithubClient;
 use Herrera\Version\Dumper as VersionDumper;
 use Herrera\Version\Parser as VersionParser;
 
@@ -15,9 +14,10 @@ $owner = $argv[1];
 $repo = $argv[2];
 $token = getToken(dirname(__DIR__) . '/.access_token');
 
-$client = new Client(['base_url' => 'https://api.github.com/', 'defaults' => ['headers' => ['Authorization' => "token {$token}"]]]);
+$client = new GithubClient();
+$client->authenticate($token, null, GithubClient::AUTH_HTTP_TOKEN);
 
-$tagName = $client->get("repos/{$owner}/{$repo}/releases")->json()[0]['tag_name'];
+$tagName = $client->api('repo')->releases()->all($owner, $repo)[0]['tag_name'];
 
 $commits = getCommitsSinceTag($client, $owner, $repo, $tagName);
 $releaseNotes = implode("\n", array_map('formatPullRequest', getPullRequests($commits)));
@@ -29,8 +29,7 @@ $randomNameDir = dirname(__DIR__) . '/vgng';
 $randomName = exec("cd {$randomNameDir}; ./vgng.py");
 
 $postData = ['tag_name' => $nextTagName, 'name' => "Version {$nextVersionNumber}: {$randomName}", 'body' => $releaseNotes, 'draft' => true];
-
-$client->post("/repos/{$owner}/{$repo}/releases", ['body' => json_encode($postData)]);
+$client->api('repo')->releases()->create($owner, $repo, $postData);
 
 function getToken($cacheFile)
 {
@@ -57,9 +56,9 @@ function incrementVersion($tagName)
     return VersionDumper::toString($version);
 }
 
-function getCommitsSinceTag(Client $client, $owner, $repo, $tagName)
+function getCommitsSinceTag(GithubClient $client, $owner, $repo, $tagName)
 {
-    return $client->get("repos/{$owner}/{$repo}/compare/{$tagName}...master")->json()['commits'];
+    return $client->api('repo')->commits()->compare($owner, $repo, $tagName, 'master')['commits'];
 }
 
 function getPullRequests(array $commits)
