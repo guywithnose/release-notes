@@ -1,77 +1,91 @@
 #!/usr/bin/env php
 <?php
 require dirname(__DIR__) . '/vendor/autoload.php';
-use GuzzleHttp\Message\Response;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
+use Github\Client as GithubClient;
+use Herrera\Version\Dumper as VersionDumper;
+use Herrera\Version\Parser as VersionParser;
 
 if ($argc != 3) {
     file_put_contents('php://stderr', "Usage: {$argv[0]} {repo_owner} {repo_name}\n");
-    exit();
+    exit(1);
 }
 
 $owner = $argv[1];
 $repo = $argv[2];
+$token = getToken(dirname(__DIR__) . '/.access_token');
 
-$token = '';
-$tokenFile = dirname(__DIR__) . '/.access_token';
-if (file_exists($tokenFile)) {
-    $token = file_get_contents($tokenFile);
-}
+$client = new GithubClient();
+$client->authenticate($token, null, GithubClient::AUTH_HTTP_TOKEN);
 
-if (!$token) {
-    $token = readline("Please enter a github access token:\n");
-    file_put_contents($tokenFile, $token);
-}
+$tagName = $client->api('repo')->releases()->all($owner, $repo)[0]['tag_name'];
 
-$client = new Client([
-    'base_url' => 'https://api.github.com/',
-    'defaults' => [
-        'headers' => ['Authorization' => "token {$token}"],
-     ],
-]);
+$commits = getCommitsSinceTag($client, $owner, $repo, $tagName);
+$releaseNotes = implode("\n", array_map('formatPullRequest', getPullRequests($commits)));
 
-$res = $client->get("repos/{$owner}/{$repo}/releases");
+$nextVersionNumber = incrementVersion(ltrim($tagName, 'v'));
 
-$releases = $res->json();
+$client->api('repo')->releases()->create($owner, $repo, buildRelease($nextVersionNumber, $releaseNotes));
 
-$tagName = $releases[0]['tag_name'];
-
-try {
-    $res = $client->get("repos/{$owner}/{$repo}/compare/{$tagName}...master");
-    $commits = $res->json();
-} catch (ClientException $e) {
-    file_put_contents('php://stderr', "There was a problem accessing the last release.  Is it possible that a draft has already been created?\n");
-    exit();
-}
-
-$releaseNotes = '';
-foreach ($commits['commits'] as $commit) {
-    if (count($commit['parents']) == 2) {
-        preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches);
-        $prNum = $matches[1];
-        $message = $matches[2];
-        $releaseNotes .= "* {$message}&nbsp;<sup>[PR&nbsp;#{$prNum}]</sup>\n";
+function getToken($cacheFile)
+{
+    $token = null;
+    if (file_exists($cacheFile)) {
+        $token = file_get_contents($cacheFile);
     }
+
+    if (!$token) {
+        $token = readline('Please enter a github access token: ');
+        file_put_contents($cacheFile, $token);
+    }
+
+    return $token;
 }
 
-$nextTagName = getNextTagName($tagName);
-$nextVersionNumber = preg_replace('#[^0-9\.]#', '', $nextTagName);
+function incrementVersion($tagName)
+{
+    $version = VersionParser::toBuilder(ltrim($tagName, 'v'));
+    $version->clearBuild();
+    $version->clearPreRelease();
+    $version->incrementPatch();
 
-$randomNameDir = dirname(__DIR__) . '/vgng';
-$randomName = exec("cd {$randomNameDir}; ./vgng.py");
+    return VersionDumper::toString($version);
+}
 
-$postData = [
-    'tag_name' => $nextTagName,
-    'name' => "Version {$nextVersionNumber} -- $randomName",
-    'body' => trim($releaseNotes),
-    'draft' => true
-];
+function getCommitsSinceTag(GithubClient $client, $owner, $repo, $tagName)
+{
+    return $client->api('repo')->commits()->compare($owner, $repo, $tagName, 'master')['commits'];
+}
 
-$client->post("/repos/{$owner}/{$repo}/releases", ['body' => json_encode($postData)]);
+function getPullRequests(array $commits)
+{
+    $results = [];
+    foreach ($commits as $commit) {
+        if (
+            count($commit['parents']) === 2 &&
+            preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)
+        ) {
+            $results[] = ['number' => $matches[1], 'message' => $matches[2]];
+        }
+    }
 
-function getNextTagName($tagName) {
-    $parts = explode('.', $tagName);
-    $parts[count($parts) - 1]++;
-    return implode('.', $parts);
+    return $results;
+}
+
+function formatPullRequest($pullRequest)
+{
+    return "* {$pullRequest['message']}&nbsp;<sup>[PR&nbsp;#{$pullRequest['number']}]</sup>";
+}
+
+function getReleaseName()
+{
+    $randomNameDir = dirname(__DIR__) . '/vgng';
+
+    return exec("cd {$randomNameDir}; ./vgng.py");
+}
+
+function buildRelease($version, $releaseNotes)
+{
+    $releaseName = "Version {$version}: " . getReleaseName();
+
+    return ['tag_name' => "v{$version}", 'name' => $releaseName, 'body' => $releaseNotes, 'draft' => true];
 }
