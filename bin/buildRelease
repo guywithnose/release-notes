@@ -78,6 +78,16 @@ function formatPullRequest($pullRequest)
 
 function getReleaseName()
 {
+    $useRandom = readline('Use a random release name? (y/N)');
+    if ($useRandom !== 'y') {
+        return readline('Release Name: ');
+    }
+
+    return getRandomReleaseName();
+}
+
+function getRandomReleaseName()
+{
     $randomNameDir = dirname(__DIR__) . '/vgng';
 
     return exec("cd {$randomNameDir}; ./vgng.py");
