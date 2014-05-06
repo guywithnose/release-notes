@@ -50,7 +50,7 @@ class BuildRelease extends Command
         $releaseNotes = implode("\n", array_map(array($this, '_formatPullRequest'), $this->_getPullRequests($commits)));
 
         $nextVersionNumber = $this->_incrementVersion(ltrim($tagName, 'v'));
-        $releaseName = $this->_getReleaseName();
+        $releaseName = $this->_getReleaseName($output);
 
         $client->api('repo')->releases()->create($owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
     }
@@ -143,9 +143,25 @@ class BuildRelease extends Command
     /**
      * Gets a name for the release.
      *
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @return string The name for the release.
      */
-    private function _getReleaseName()
+    private function _getReleaseName(OutputInterface $output)
+    {
+        $dialog = $this->getHelperSet()->get('dialog');
+        if ($dialog->askConfirmation($output, '<question>Use a random release name?</question> ', true)) {
+            return $this->_getRandomReleaseName();
+        }
+
+        return $dialog->ask($output, '<question>Release Name</question>: ');
+    }
+
+    /**
+     * Gets a fun random name for the release.
+     *
+     * @return string The name for the release.
+     */
+    private function _getRandomReleaseName()
     {
         $randomNameDir = dirname(__DIR__) . '/vgng';
 
