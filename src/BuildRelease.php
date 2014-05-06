@@ -56,7 +56,7 @@ class BuildRelease extends Command
         $nextVersionNumber = $this->_incrementVersion(ltrim($tagName, 'v'));
         $releaseName = $this->_getReleaseName($input, $output);
 
-        $client->api('repo')->releases()->create($owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
+        $this->_submitRelease($client, $owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
     }
 
     /**
@@ -213,5 +213,19 @@ class BuildRelease extends Command
     private function _buildRelease($version, $releaseName, $releaseNotes)
     {
         return ['tag_name' => "v{$version}", 'name' => "Version {$version}: {$releaseName}", 'body' => $releaseNotes, 'draft' => true];
+    }
+
+    /**
+     * Submits the given release to github.
+     *
+     * @param \Github\Client $client The github client.
+     * @param string $owner The repository owner.
+     * @param string $repo The repository name.
+     * @param array $release The release information (@see $this->_buildRelease()).
+     * @return void
+     */
+    private function _submitRelease(GithubClient $client, $owner, $repo, array $release)
+    {
+        $client->api('repo')->releases()->create($owner, $repo, $release);
     }
 }
