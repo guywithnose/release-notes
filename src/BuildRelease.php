@@ -50,8 +50,9 @@ class BuildRelease extends Command
         $releaseNotes = implode("\n", array_map(array($this, '_formatPullRequest'), $this->_getPullRequests($commits)));
 
         $nextVersionNumber = $this->_incrementVersion(ltrim($tagName, 'v'));
+        $releaseName = $this->_getReleaseName();
 
-        $client->api('repo')->releases()->create($owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseNotes));
+        $client->api('repo')->releases()->create($owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
     }
 
     /**
@@ -155,13 +156,12 @@ class BuildRelease extends Command
      * Builds the full release information to send to github.
      *
      * @param string $version The version number of the release.
+     * @param string $releaseName The name of the release.
      * @param string $releaseNotes The formatted release notes.
      * @return array The data to send to github.
      */
-    private function _buildRelease($version, $releaseNotes)
+    private function _buildRelease($version, $releaseName, $releaseNotes)
     {
-        $releaseName = "Version {$version}: {$this->_getReleaseName()}";
-
-        return ['tag_name' => "v{$version}", 'name' => $releaseName, 'body' => $releaseNotes, 'draft' => true];
+        return ['tag_name' => "v{$version}", 'name' => "Version {$version}: {$releaseName}", 'body' => $releaseNotes, 'draft' => true];
     }
 }
