@@ -1,6 +1,7 @@
 {
     "require": {
         "knplabs/github-api": "~1.2",
-        "herrera-io/version": "~1.1"
+        "herrera-io/version": "~1.1",
+        "gregwar/cache": "~1.0"
     }
 }

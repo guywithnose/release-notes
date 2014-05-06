@@ -2,6 +2,7 @@
 <?php
 require dirname(__DIR__) . '/vendor/autoload.php';
 use Github\Client as GithubClient;
+use Gregwar\Cache\Cache;
 use Herrera\Version\Dumper as VersionDumper;
 use Herrera\Version\Parser as VersionParser;
 
@@ -12,7 +13,7 @@ if ($argc != 3) {
 
 $owner = $argv[1];
 $repo = $argv[2];
-$token = getToken(dirname(__DIR__) . '/.access_token');
+$token = getToken(new Cache(dirname(__DIR__)), '.access_token');
 
 $client = new GithubClient();
 $client->authenticate($token, null, GithubClient::AUTH_HTTP_TOKEN);
@@ -26,19 +27,13 @@ $nextVersionNumber = incrementVersion(ltrim($tagName, 'v'));
 
 $client->api('repo')->releases()->create($owner, $repo, buildRelease($nextVersionNumber, $releaseNotes));
 
-function getToken($cacheFile)
+function getToken($cache, $fileName)
 {
-    $token = null;
-    if (file_exists($cacheFile)) {
-        $token = file_get_contents($cacheFile);
-    }
+    $askForToken = function() {
+        return readline('Please enter a github access token: ');
+    };
 
-    if (!$token) {
-        $token = readline('Please enter a github access token: ');
-        file_put_contents($cacheFile, $token);
-    }
-
-    return $token;
+    return $cache->getOrCreate($fileName, [], $askForToken);
 }
 
 function incrementVersion($tagName)
