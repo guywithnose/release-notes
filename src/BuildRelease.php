@@ -25,6 +25,7 @@ class BuildRelease extends Command
             ->setDescription('Prepare release notes for a github repository')
             ->addArgument('repo_owner', InputArgument::REQUIRED, 'The github repository owner')
             ->addArgument('repo_name', InputArgument::REQUIRED, 'The github repository name')
+            ->addOption('release_name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
             ->addOption('access_token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
             ->addOption('cache_dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
             ->addOption('token_file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token');
@@ -53,7 +54,7 @@ class BuildRelease extends Command
         $releaseNotes = implode("\n", array_map(array($this, '_formatPullRequest'), $this->_getPullRequests($commits)));
 
         $nextVersionNumber = $this->_incrementVersion(ltrim($tagName, 'v'));
-        $releaseName = $this->_getReleaseName($output);
+        $releaseName = $this->_getReleaseName($input, $output);
 
         $client->api('repo')->releases()->create($owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
     }
@@ -146,11 +147,17 @@ class BuildRelease extends Command
     /**
      * Gets a name for the release.
      *
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @return string The name for the release.
      */
-    private function _getReleaseName(OutputInterface $output)
+    private function _getReleaseName(InputInterface $input, OutputInterface $output)
     {
+        $releaseName = $input->getOption('release_name');
+        if ($releaseName) {
+            return $releaseName;
+        }
+
         $dialog = $this->getHelperSet()->get('dialog');
         if ($dialog->askConfirmation($output, '<question>Use a random release name?</question> ', true)) {
             return $this->_selectRandomReleaseName($output);
