@@ -1,86 +1,8 @@
 #!/usr/bin/env php
 <?php
 require dirname(__DIR__) . '/vendor/autoload.php';
-use Github\Client as GithubClient;
-use Gregwar\Cache\Cache;
-use Herrera\Version\Dumper as VersionDumper;
-use Herrera\Version\Parser as VersionParser;
 
-if ($argc != 3) {
-    file_put_contents('php://stderr', "Usage: {$argv[0]} {repo_owner} {repo_name}\n");
-    exit(1);
-}
+use Guywithnose\ReleaseNotes\Application;
 
-$owner = $argv[1];
-$repo = $argv[2];
-$token = getToken(new Cache(dirname(__DIR__)), '.access_token');
-
-$client = new GithubClient();
-$client->authenticate($token, null, GithubClient::AUTH_HTTP_TOKEN);
-
-$tagName = $client->api('repo')->releases()->all($owner, $repo)[0]['tag_name'];
-
-$commits = getCommitsSinceTag($client, $owner, $repo, $tagName);
-$releaseNotes = implode("\n", array_map('formatPullRequest', getPullRequests($commits)));
-
-$nextVersionNumber = incrementVersion(ltrim($tagName, 'v'));
-
-$client->api('repo')->releases()->create($owner, $repo, buildRelease($nextVersionNumber, $releaseNotes));
-
-function getToken($cache, $fileName)
-{
-    $askForToken = function() {
-        return readline('Please enter a github access token: ');
-    };
-
-    return $cache->getOrCreate($fileName, [], $askForToken);
-}
-
-function incrementVersion($tagName)
-{
-    $version = VersionParser::toBuilder(ltrim($tagName, 'v'));
-    $version->clearBuild();
-    $version->clearPreRelease();
-    $version->incrementPatch();
-
-    return VersionDumper::toString($version);
-}
-
-function getCommitsSinceTag(GithubClient $client, $owner, $repo, $tagName)
-{
-    return $client->api('repo')->commits()->compare($owner, $repo, $tagName, 'master')['commits'];
-}
-
-function getPullRequests(array $commits)
-{
-    $results = [];
-    foreach ($commits as $commit) {
-        if (
-            count($commit['parents']) === 2 &&
-            preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)
-        ) {
-            $results[] = ['number' => $matches[1], 'message' => $matches[2]];
-        }
-    }
-
-    return $results;
-}
-
-function formatPullRequest($pullRequest)
-{
-    return "* {$pullRequest['message']}&nbsp;<sup>[PR&nbsp;#{$pullRequest['number']}]</sup>";
-}
-
-function getReleaseName()
-{
-    $randomNameDir = dirname(__DIR__) . '/vgng';
-
-    return exec("cd {$randomNameDir}; ./vgng.py");
-}
-
-function buildRelease($version, $releaseNotes)
-{
-    $releaseName = "Version {$version}: " . getReleaseName();
-
-    return ['tag_name' => "v{$version}", 'name' => $releaseName, 'body' => $releaseNotes, 'draft' => true];
-}
+$application = new Application();
+$application->run();
