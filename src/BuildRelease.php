@@ -6,6 +6,7 @@ use Gregwar\Cache\Cache;
 use Herrera\Version\Dumper as VersionDumper;
 use Herrera\Version\Parser as VersionParser;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -38,6 +39,8 @@ class BuildRelease extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $output->getFormatter()->setStyle('boldquestion', new OutputFormatterStyle('red', 'cyan', ['bold']));
+
         $owner = $input->getArgument('repo_owner');
         $repo = $input->getArgument('repo_name');
 
@@ -150,10 +153,34 @@ class BuildRelease extends Command
     {
         $dialog = $this->getHelperSet()->get('dialog');
         if ($dialog->askConfirmation($output, '<question>Use a random release name?</question> ', true)) {
-            return $this->_getRandomReleaseName();
+            return $this->_selectRandomReleaseName($output);
         }
 
         return $dialog->ask($output, '<question>Release Name</question>: ');
+    }
+
+    /**
+     * Continually ask the user if a random release name should be used until they approve one.
+     *
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @return string The name for the release.
+     */
+    private function _selectRandomReleaseName(OutputInterface $output)
+    {
+        $dialog = $this->getHelperSet()->get('dialog');
+        $releaseName = null;
+
+        do {
+            $releaseName = $this->_getRandomReleaseName();
+
+            $useRelease = $dialog->askConfirmation(
+                $output,
+                "<question>Use release name '<boldquestion>{$releaseName}</boldquestion>'?</question> ",
+                true
+            );
+        } while (!$useRelease);
+
+        return $releaseName;
     }
 
     /**
