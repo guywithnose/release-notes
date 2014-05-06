@@ -56,7 +56,7 @@ class BuildRelease extends Command
         $nextVersionNumber = $this->_incrementVersion(ltrim($tagName, 'v'));
         $releaseName = $this->_getReleaseName($input, $output);
 
-        $this->_submitRelease($client, $owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
+        $this->_submitRelease($output, $client, $owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
     }
 
     /**
@@ -218,14 +218,22 @@ class BuildRelease extends Command
     /**
      * Submits the given release to github.
      *
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param \Github\Client $client The github client.
      * @param string $owner The repository owner.
      * @param string $repo The repository name.
      * @param array $release The release information (@see $this->_buildRelease()).
      * @return void
      */
-    private function _submitRelease(GithubClient $client, $owner, $repo, array $release)
+    private function _submitRelease(OutputInterface $output, GithubClient $client, $owner, $repo, array $release)
     {
-        $client->api('repo')->releases()->create($owner, $repo, $release);
+        $dialog = $this->getHelperSet()->get('dialog');
+        $formatter = $this->getHelperSet()->get('formatter');
+        $lines = array_merge([$release['name'], ''], explode("\n", $release['body']));
+        $formattedNotes = $formatter->formatBlock($lines, 'info', true);
+
+        if ($dialog->askConfirmation($output, "{$formattedNotes}\n<question>Publish this release as a draft?</question> ", true)) {
+            $client->api('repo')->releases()->create($owner, $repo, $release);
+        }
     }
 }
