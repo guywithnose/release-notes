@@ -24,6 +24,7 @@ class BuildRelease extends Command
             ->setDescription('Prepare release notes for a github repository')
             ->addArgument('repo_owner', InputArgument::REQUIRED, 'The github repository owner')
             ->addArgument('repo_name', InputArgument::REQUIRED, 'The github repository name')
+            ->addOption('access_token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
             ->addOption('cache_dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
             ->addOption('token_file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token');
     }
@@ -62,6 +63,11 @@ class BuildRelease extends Command
      */
     private function _getToken(InputInterface $input, OutputInterface $output)
     {
+        $token = $input->getOption('access_token');
+        if ($token) {
+            return $token;
+        }
+
         $askForToken = function() use($output) {
             return $this->getHelperSet()->get('dialog')->ask($output, '<question>Please enter a github access token</question>: ');
         };
