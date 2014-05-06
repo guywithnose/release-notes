@@ -83,7 +83,13 @@ function getReleaseName()
         return readline('Release Name: ');
     }
 
-    return getRandomReleaseName();
+    do {
+        $releaseName = getRandomReleaseName();
+
+        $useRelease = readline("Use release name '{$releaseName}'? (y/N)");
+    } while ($useRelease !== 'y');
+
+    return $releaseName;
 }
 
 function getRandomReleaseName()
