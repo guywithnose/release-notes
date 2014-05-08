@@ -5,6 +5,7 @@
         "gregwar/cache": "~1.0",
         "symfony/console": "~2.4"
     },
+    "bin": ["bin/buildRelease"],
     "autoload": {
         "psr-4": { 
           "Guywithnose\\ReleaseNotes\\": "src"

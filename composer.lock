@@ -3,22 +3,25 @@
         "This file locks the dependencies of your project to a known state",
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
     ],
-    "hash": "f6e8088536e161e17bea14dfb391a700",
+    "hash": "be518d688c392838ebbae0c4877c7c50",
     "packages": [
         {
             "name": "gregwar/cache",
-            "version": "v1.0.7",
+            "version": "v1.0.8",
             "target-dir": "Gregwar/Cache",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Gregwar/Cache.git",
-                "reference": "b2d0197c07cc1ccf7436e1ae7bf64f9948e02052"
+                "reference": "bf8038cb4a00ba7c63642ead89153b5c11ab3a28"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Gregwar/Cache/zipball/b2d0197c07cc1ccf7436e1ae7bf64f9948e02052",
-                "reference": "b2d0197c07cc1ccf7436e1ae7bf64f9948e02052",
+                "url": "https://api.github.com/repos/Gregwar/Cache/zipball/bf8038cb4a00ba7c63642ead89153b5c11ab3a28",
+                "reference": "bf8038cb4a00ba7c63642ead89153b5c11ab3a28",
                 "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4"
             },
             "type": "library",
             "autoload": {
@@ -44,20 +47,20 @@
                 "file-system",
                 "system"
             ],
-            "time": "2014-02-20 20:04:58"
+            "time": "2014-05-06 12:01:18"
         },
         {
             "name": "guzzle/guzzle",
-            "version": "v3.9.0",
+            "version": "v3.9.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle3.git",
-                "reference": "e4d12d7d6acccf75a5e504114e2df9195e494108"
+                "reference": "92d9934f2fca1da15178c91239576ae26e505e60"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle3/zipball/e4d12d7d6acccf75a5e504114e2df9195e494108",
-                "reference": "e4d12d7d6acccf75a5e504114e2df9195e494108",
+                "url": "https://api.github.com/repos/guzzle/guzzle3/zipball/92d9934f2fca1da15178c91239576ae26e505e60",
+                "reference": "92d9934f2fca1da15178c91239576ae26e505e60",
                 "shasum": ""
             },
             "require": {
@@ -136,7 +139,7 @@
                 "rest",
                 "web service"
             ],
-            "time": "2014-04-23 21:43:40"
+            "time": "2014-05-07 17:04:22"
         },
         {
             "name": "herrera-io/version",
