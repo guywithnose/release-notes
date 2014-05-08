@@ -1,6 +1,18 @@
 #!/usr/bin/env php
 <?php
-require dirname(__DIR__) . '/vendor/autoload.php';
+foreach (array(__DIR__ . '/../../../autoload.php', __DIR__ . '/../vendor/autoload.php') as $file) {
+    if (file_exists($file)) {
+        define('RELEASE_NOTES_COMPOSER_INSTALL', $file);
+        break;
+    }
+}
+
+if (!defined('RELEASE_NOTES_COMPOSER_INSTALL')) {
+    file_put_contents('php://stderr', "Composer not properly set up.  Run 'composer install'.\n");
+    exit(1);
+}
+
+require RELEASE_NOTES_COMPOSER_INSTALL;
 
 use Guywithnose\ReleaseNotes\Application;
 
