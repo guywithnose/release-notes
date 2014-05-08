@@ -1,4 +1,19 @@
 {
+    "name": "guywithnose/release-notes",
+    "description": "A script for building release notes for a github-based project.",
+    "keywords": ["release", "github"],
+    "authors": [
+        {
+            "name": "Anthony Bittle",
+            "email": "guywithnose@gmail.com",
+            "role": "Developer"
+        },
+        {
+            "name": "Spencer Rinehart",
+            "email": "anubis@overthemonkey.com",
+            "role": "Developer"
+        }
+    ],
     "require": {
         "knplabs/github-api": "~1.2",
         "herrera-io/version": "~1.1",
