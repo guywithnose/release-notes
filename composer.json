@@ -1,6 +1,13 @@
 {
     "require": {
         "knplabs/github-api": "~1.2",
-        "herrera-io/version": "~1.1"
+        "herrera-io/version": "~1.1",
+        "gregwar/cache": "~1.0",
+        "symfony/console": "~2.4"
+    },
+    "autoload": {
+        "psr-4": { 
+          "Guywithnose\\ReleaseNotes\\": "src"
+        }
     }
 }
