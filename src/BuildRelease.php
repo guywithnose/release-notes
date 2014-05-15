@@ -51,7 +51,7 @@ class BuildRelease extends Command
         $tagName = $client->api('repo')->releases()->all($owner, $repo)[0]['tag_name'];
 
         $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
-        $releaseNotes = implode("\n", array_map(array($this, '_formatPullRequest'), $this->_getPullRequests($commits)));
+        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
 
         $nextVersionNumber = $this->_incrementVersion($output, ltrim($tagName, 'v'));
         $releaseName = $this->_getReleaseName($input, $output);
