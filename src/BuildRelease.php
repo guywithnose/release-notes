@@ -53,7 +53,7 @@ class BuildRelease extends Command
         $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
         $releaseNotes = implode("\n", array_map(array($this, '_formatPullRequest'), $this->_getPullRequests($commits)));
 
-        $nextVersionNumber = $this->_incrementVersion(ltrim($tagName, 'v'));
+        $nextVersionNumber = $this->_incrementVersion($output, ltrim($tagName, 'v'));
         $releaseName = $this->_getReleaseName($input, $output);
 
         $this->_submitRelease($output, $client, $owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
@@ -82,17 +82,24 @@ class BuildRelease extends Command
     }
 
     /**
-     * Increments the given version number patch version.
+     * Increments the given version number.
+     *
+     * The user may specify whether this is a major, minor, or patch version.
      *
      * @param string $version The version number.
      * @return string The incremented version number.
      */
-    private function _incrementVersion($version)
+    private function _incrementVersion(OutputInterface $output, $version)
     {
+        $types = ['Major', 'Minor', 'Patch'];
+        $dialog = $this->getHelperSet()->get('dialog');
+        $choice = $dialog->select($output, '<question>Is this a major, minor, or patch release?</question>', $types, 2);
+        $incrementMethod = "increment{$types[$choice]}";
+
         $version = VersionParser::toBuilder($version);
         $version->clearBuild();
         $version->clearPreRelease();
-        $version->incrementPatch();
+        $version->$incrementMethod();
 
         return VersionDumper::toString($version);
     }
