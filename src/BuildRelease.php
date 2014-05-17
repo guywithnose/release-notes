@@ -3,6 +3,7 @@ namespace Guywithnose\ReleaseNotes;
 
 use Github\Client as GithubClient;
 use Gregwar\Cache\Cache;
+use Herrera\Version\Builder as VersionBuilder;
 use Herrera\Version\Dumper as VersionDumper;
 use Herrera\Version\Parser as VersionParser;
 use Herrera\Version\Version;
@@ -55,7 +56,8 @@ class BuildRelease extends Command
         $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
         $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
 
-        $newVersion = $this->_getVersion($input, $output, ltrim($tagName, 'v'));
+        $currentVersion = VersionParser::toVersion(ltrim($tagName, 'v'));
+        $newVersion = $this->_getVersion($input, $output, $currentVersion);
         $preRelease = $this->_isPreRelease($newVersion);
         $releaseName = $this->_getReleaseName($input, $output);
 
@@ -92,10 +94,10 @@ class BuildRelease extends Command
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
-     * @param string $currentVersion The current version number.
+     * @param \Herrera\Version\Version $currentVersion The current version.
      * @return \Herrera\Version\Version The new version.
      */
-    private function _getVersion(InputInterface $input, OutputInterface $output, $currentVersion)
+    private function _getVersion(InputInterface $input, OutputInterface $output, Version $currentVersion)
     {
         $version = $input->getOption('release-version');
         if ($version) {
@@ -107,12 +109,12 @@ class BuildRelease extends Command
         $choice = $dialog->select($output, '<question>Is this a major, minor, or patch release?</question>', $types, 2);
         $incrementMethod = "increment{$types[$choice]}";
 
-        $version = VersionParser::toBuilder($currentVersion);
-        $version->clearBuild();
-        $version->clearPreRelease();
-        $version->$incrementMethod();
+        $builder = VersionBuilder::create()->importVersion($currentVersion);
+        $builder->clearBuild();
+        $builder->clearPreRelease();
+        $builder->$incrementMethod();
 
-        return $version->getVersion();
+        return $builder->getVersion();
     }
 
     /**
