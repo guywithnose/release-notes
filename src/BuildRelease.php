@@ -54,10 +54,10 @@ class BuildRelease extends Command
         $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
         $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
 
-        $nextVersionNumber = $this->_getVersion($input, $output, ltrim($tagName, 'v'));
+        $newVersion = $this->_getVersion($input, $output, ltrim($tagName, 'v'));
         $releaseName = $this->_getReleaseName($input, $output);
 
-        $this->_submitRelease($output, $client, $owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
+        $this->_submitRelease($output, $client, $owner, $repo, $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes));
     }
 
     /**
@@ -90,13 +90,13 @@ class BuildRelease extends Command
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param string $currentVersion The current version number.
-     * @return string The new version number.
+     * @return \Herrera\Version\Version The new version.
      */
     private function _getVersion(InputInterface $input, OutputInterface $output, $currentVersion)
     {
         $version = $input->getOption('release-version');
         if ($version) {
-            return $version;
+            return VersionParser::toVersion($version);
         }
 
         $types = ['Major', 'Minor', 'Patch'];
@@ -109,7 +109,7 @@ class BuildRelease extends Command
         $version->clearPreRelease();
         $version->$incrementMethod();
 
-        return VersionDumper::toString($version);
+        return $version->getVersion();
     }
 
     /**
