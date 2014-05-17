@@ -23,13 +23,13 @@ class BuildRelease extends Command
     {
         $this->setName('buildRelease')
             ->setDescription('Prepare release notes for a github repository')
-            ->addArgument('repo_owner', InputArgument::REQUIRED, 'The github repository owner')
-            ->addArgument('repo_name', InputArgument::REQUIRED, 'The github repository name')
-            ->addOption('release_name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
-            ->addOption('release_version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')
-            ->addOption('access_token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
-            ->addOption('cache_dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
-            ->addOption('token_file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token');
+            ->addArgument('repo-owner', InputArgument::REQUIRED, 'The github repository owner')
+            ->addArgument('repo-name', InputArgument::REQUIRED, 'The github repository name')
+            ->addOption('release-name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
+            ->addOption('release-version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')
+            ->addOption('access-token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
+            ->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
+            ->addOption('token-file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token');
     }
 
     /**
@@ -43,8 +43,8 @@ class BuildRelease extends Command
     {
         $output->getFormatter()->setStyle('boldquestion', new OutputFormatterStyle('red', 'cyan', ['bold']));
 
-        $owner = $input->getArgument('repo_owner');
-        $repo = $input->getArgument('repo_name');
+        $owner = $input->getArgument('repo-owner');
+        $repo = $input->getArgument('repo-name');
 
         $client = new GithubClient();
         $client->authenticate($this->_getToken($input, $output), null, GithubClient::AUTH_HTTP_TOKEN);
@@ -69,7 +69,7 @@ class BuildRelease extends Command
      */
     private function _getToken(InputInterface $input, OutputInterface $output)
     {
-        $token = $input->getOption('access_token');
+        $token = $input->getOption('access-token');
         if ($token) {
             return $token;
         }
@@ -78,8 +78,8 @@ class BuildRelease extends Command
             return $this->getHelperSet()->get('dialog')->ask($output, '<question>Please enter a github access token</question>: ');
         };
 
-        $cache = new Cache($input->getOption('cache_dir'));
-        return $cache->getOrCreate($input->getOption('token_file'), [], $askForToken);
+        $cache = new Cache($input->getOption('cache-dir'));
+        return $cache->getOrCreate($input->getOption('token-file'), [], $askForToken);
     }
 
     /**
@@ -94,7 +94,7 @@ class BuildRelease extends Command
      */
     private function _getVersion(InputInterface $input, OutputInterface $output, $currentVersion)
     {
-        $version = $input->getOption('release_version');
+        $version = $input->getOption('release-version');
         if ($version) {
             return $version;
         }
@@ -168,7 +168,7 @@ class BuildRelease extends Command
      */
     private function _getReleaseName(InputInterface $input, OutputInterface $output)
     {
-        $releaseName = $input->getOption('release_name');
+        $releaseName = $input->getOption('release-name');
         if ($releaseName) {
             return $releaseName;
         }
