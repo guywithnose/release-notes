@@ -104,17 +104,25 @@ class BuildRelease extends Command
             return VersionParser::toVersion($version);
         }
 
-        $types = ['Major', 'Minor', 'Patch'];
-        $dialog = $this->getHelperSet()->get('dialog');
-        $choice = $dialog->select($output, '<question>Is this a major, minor, or patch release?</question>', $types, 2);
-        $incrementMethod = "increment{$types[$choice]}";
-
         $builder = VersionBuilder::create()->importVersion($currentVersion);
         $builder->clearBuild();
         $builder->clearPreRelease();
-        $builder->$incrementMethod();
 
-        return $builder->getVersion();
+        $autoComplete = [
+            $builder->incrementPatch()->getVersion(),
+            $builder->incrementMinor()->getVersion(),
+            $builder->incrementMajor()->getVersion(),
+        ];
+
+        $dialog = $this->getHelperSet()->get('dialog');
+        $version = $dialog->ask(
+            $output,
+            "<question>Version Number</question> <info>(current: {$currentVersion})</info>: ",
+            $autoComplete[0],
+            $autoComplete
+        );
+
+        return VersionParser::toVersion($version);
     }
 
     /**
