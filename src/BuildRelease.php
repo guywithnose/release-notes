@@ -5,6 +5,7 @@ use Github\Client as GithubClient;
 use Gregwar\Cache\Cache;
 use Herrera\Version\Dumper as VersionDumper;
 use Herrera\Version\Parser as VersionParser;
+use Herrera\Version\Version;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputArgument;
@@ -55,9 +56,11 @@ class BuildRelease extends Command
         $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
 
         $newVersion = $this->_getVersion($input, $output, ltrim($tagName, 'v'));
+        $preRelease = $this->_isPreRelease($newVersion);
         $releaseName = $this->_getReleaseName($input, $output);
 
-        $this->_submitRelease($output, $client, $owner, $repo, $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes));
+        $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease);
+        $this->_submitRelease($output, $client, $owner, $repo, $release);
     }
 
     /**
@@ -110,6 +113,17 @@ class BuildRelease extends Command
         $version->$incrementMethod();
 
         return $version->getVersion();
+    }
+
+    /**
+     * Checks whether the given version is a stable 1.0+ version.
+     *
+     * @param \Herrera\Version\Version $version The version to check.
+     * @return bool True if the version is a "prerelease", false otherwise.
+     */
+    private function _isPreRelease(Version $version)
+    {
+        return $version->getMajor() === 0 || !$version->isStable();
     }
 
     /**
@@ -223,11 +237,18 @@ class BuildRelease extends Command
      * @param string $version The version number of the release.
      * @param string $releaseName The name of the release.
      * @param string $releaseNotes The formatted release notes.
+     * @param bool $preRelease The prerelease flag for github.
      * @return array The data to send to github.
      */
-    private function _buildRelease($version, $releaseName, $releaseNotes)
+    private function _buildRelease($version, $releaseName, $releaseNotes, $preRelease = false)
     {
-        return ['tag_name' => "v{$version}", 'name' => "Version {$version}: {$releaseName}", 'body' => $releaseNotes, 'draft' => true];
+        return [
+            'tag_name' => "v{$version}",
+            'name' => "Version {$version}: {$releaseName}",
+            'body' => $releaseNotes,
+            'prerelease' => $preRelease,
+            'draft' => true,
+        ];
     }
 
     /**
