@@ -26,6 +26,7 @@ class BuildRelease extends Command
             ->addArgument('repo_owner', InputArgument::REQUIRED, 'The github repository owner')
             ->addArgument('repo_name', InputArgument::REQUIRED, 'The github repository name')
             ->addOption('release_name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
+            ->addOption('release_version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')
             ->addOption('access_token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
             ->addOption('cache_dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
             ->addOption('token_file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token');
@@ -53,7 +54,7 @@ class BuildRelease extends Command
         $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
         $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
 
-        $nextVersionNumber = $this->_incrementVersion($output, ltrim($tagName, 'v'));
+        $nextVersionNumber = $this->_getVersion($input, $output, ltrim($tagName, 'v'));
         $releaseName = $this->_getReleaseName($input, $output);
 
         $this->_submitRelease($output, $client, $owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
@@ -82,21 +83,28 @@ class BuildRelease extends Command
     }
 
     /**
-     * Increments the given version number.
+     * Gets the new version number to use.
      *
-     * The user may specify whether this is a major, minor, or patch version.
+     * The user may specify an exact version or whether this is a major, minor, or patch version.
      *
-     * @param string $version The version number.
-     * @return string The incremented version number.
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param string $currentVersion The current version number.
+     * @return string The new version number.
      */
-    private function _incrementVersion(OutputInterface $output, $version)
+    private function _getVersion(InputInterface $input, OutputInterface $output, $currentVersion)
     {
+        $version = $input->getOption('release_version');
+        if ($version) {
+            return $version;
+        }
+
         $types = ['Major', 'Minor', 'Patch'];
         $dialog = $this->getHelperSet()->get('dialog');
         $choice = $dialog->select($output, '<question>Is this a major, minor, or patch release?</question>', $types, 2);
         $incrementMethod = "increment{$types[$choice]}";
 
-        $version = VersionParser::toBuilder($version);
+        $version = VersionParser::toBuilder($currentVersion);
         $version->clearBuild();
         $version->clearPreRelease();
         $version->$incrementMethod();
