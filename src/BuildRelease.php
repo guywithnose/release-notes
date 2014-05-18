@@ -2,6 +2,7 @@
 namespace Guywithnose\ReleaseNotes;
 
 use Github\Client as GithubClient;
+use Github\ResultPager as GithubResultPager;
 use Gregwar\Cache\Cache;
 use Herrera\Version\Builder as VersionBuilder;
 use Herrera\Version\Dumper as VersionDumper;
@@ -51,15 +52,23 @@ class BuildRelease extends Command
         $client = new GithubClient();
         $client->authenticate($this->_getToken($input, $output), null, GithubClient::AUTH_HTTP_TOKEN);
 
-        $tagName = $client->api('repo')->releases()->all($owner, $repo)[0]['tag_name'];
+        $tagName = $this->_getTagName($client, $owner, $repo);
 
-        $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
-        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
+        $currentVersion = null;
+        $commits = [];
+        if ($tagName !== null) {
+            $currentVersion = VersionParser::toVersion(ltrim($tagName, 'v'));
+            $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
+        } else {
+            $currentVersion = new Version();
+            $commits = $this->_getCommitsOnMaster($client, $owner, $repo);
+        }
 
-        $currentVersion = VersionParser::toVersion(ltrim($tagName, 'v'));
         $newVersion = $this->_getVersion($input, $output, $currentVersion);
         $preRelease = $this->_isPreRelease($newVersion);
         $releaseName = $this->_getReleaseName($input, $output);
+
+        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
 
         $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease);
         $this->_submitRelease($output, $client, $owner, $repo, $release);
@@ -85,6 +94,21 @@ class BuildRelease extends Command
 
         $cache = new Cache($input->getOption('cache-dir'));
         return $cache->getOrCreate($input->getOption('token-file'), [], $askForToken);
+    }
+
+    /**
+     * Get the latest release's tag name for the given repo.
+     *
+     * @param \Github\Client $client The github client.
+     * @param string $owner The repository owner.
+     * @param string $repo The repository name.
+     * @return string|null The release's tag name if one exists.
+     */
+    private function _getTagName(GithubClient $client, $owner, $repo)
+    {
+        $releases = $client->api('repo')->releases()->all($owner, $repo);
+
+        return empty($releases) ? null : $releases[0]['tag_name'];
     }
 
     /**
@@ -150,6 +174,20 @@ class BuildRelease extends Command
         return $client->api('repo')->commits()->compare($owner, $repo, $tagName, 'master')['commits'];
     }
 
+    /**
+     * Fetch the commits for the given repo's master branch.
+     *
+     * @param \Github\Client $client The github client.
+     * @param string $owner The repository owner.
+     * @param string $repo The repository name.
+     * @return array The commits made to the repository's master branch.
+     */
+    private function _getCommitsOnMaster(GithubClient $client, $owner, $repo)
+    {
+        $paginator = new GithubResultPager($client);
+
+        return $paginator->fetchAll($client->api('repo')->commits(), 'all', [$owner, $repo, ['sha' => 'master']]);
+    }
 
     /**
      * Filters a list of commits down to just the pull requests and extracts the pull request info.
