@@ -2,9 +2,12 @@
 namespace Guywithnose\ReleaseNotes;
 
 use Github\Client as GithubClient;
+use Github\ResultPager as GithubResultPager;
 use Gregwar\Cache\Cache;
+use Herrera\Version\Builder as VersionBuilder;
 use Herrera\Version\Dumper as VersionDumper;
 use Herrera\Version\Parser as VersionParser;
+use Herrera\Version\Version;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputArgument;
@@ -23,12 +26,13 @@ class BuildRelease extends Command
     {
         $this->setName('buildRelease')
             ->setDescription('Prepare release notes for a github repository')
-            ->addArgument('repo_owner', InputArgument::REQUIRED, 'The github repository owner')
-            ->addArgument('repo_name', InputArgument::REQUIRED, 'The github repository name')
-            ->addOption('release_name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
-            ->addOption('access_token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
-            ->addOption('cache_dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
-            ->addOption('token_file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token');
+            ->addArgument('repo-owner', InputArgument::REQUIRED, 'The github repository owner')
+            ->addArgument('repo-name', InputArgument::REQUIRED, 'The github repository name')
+            ->addOption('release-name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
+            ->addOption('release-version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')
+            ->addOption('access-token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
+            ->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
+            ->addOption('token-file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token');
     }
 
     /**
@@ -42,21 +46,32 @@ class BuildRelease extends Command
     {
         $output->getFormatter()->setStyle('boldquestion', new OutputFormatterStyle('red', 'cyan', ['bold']));
 
-        $owner = $input->getArgument('repo_owner');
-        $repo = $input->getArgument('repo_name');
+        $owner = $input->getArgument('repo-owner');
+        $repo = $input->getArgument('repo-name');
 
         $client = new GithubClient();
         $client->authenticate($this->_getToken($input, $output), null, GithubClient::AUTH_HTTP_TOKEN);
 
-        $tagName = $client->api('repo')->releases()->all($owner, $repo)[0]['tag_name'];
+        $tagName = $this->_getTagName($client, $owner, $repo);
 
-        $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
-        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
+        $currentVersion = null;
+        $commits = [];
+        if ($tagName !== null) {
+            $currentVersion = VersionParser::toVersion(ltrim($tagName, 'v'));
+            $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
+        } else {
+            $currentVersion = new Version();
+            $commits = $this->_getCommitsOnMaster($client, $owner, $repo);
+        }
 
-        $nextVersionNumber = $this->_incrementVersion($output, ltrim($tagName, 'v'));
+        $newVersion = $this->_getVersion($input, $output, $currentVersion);
+        $preRelease = $this->_isPreRelease($newVersion);
         $releaseName = $this->_getReleaseName($input, $output);
 
-        $this->_submitRelease($output, $client, $owner, $repo, $this->_buildRelease($nextVersionNumber, $releaseName, $releaseNotes));
+        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
+
+        $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease);
+        $this->_submitRelease($output, $client, $owner, $repo, $release);
     }
 
     /**
@@ -68,7 +83,7 @@ class BuildRelease extends Command
      */
     private function _getToken(InputInterface $input, OutputInterface $output)
     {
-        $token = $input->getOption('access_token');
+        $token = $input->getOption('access-token');
         if ($token) {
             return $token;
         }
@@ -77,31 +92,72 @@ class BuildRelease extends Command
             return $this->getHelperSet()->get('dialog')->ask($output, '<question>Please enter a github access token</question>: ');
         };
 
-        $cache = new Cache($input->getOption('cache_dir'));
-        return $cache->getOrCreate($input->getOption('token_file'), [], $askForToken);
+        $cache = new Cache($input->getOption('cache-dir'));
+        return $cache->getOrCreate($input->getOption('token-file'), [], $askForToken);
     }
 
     /**
-     * Increments the given version number.
+     * Get the latest release's tag name for the given repo.
      *
-     * The user may specify whether this is a major, minor, or patch version.
-     *
-     * @param string $version The version number.
-     * @return string The incremented version number.
+     * @param \Github\Client $client The github client.
+     * @param string $owner The repository owner.
+     * @param string $repo The repository name.
+     * @return string|null The release's tag name if one exists.
      */
-    private function _incrementVersion(OutputInterface $output, $version)
+    private function _getTagName(GithubClient $client, $owner, $repo)
     {
-        $types = ['Major', 'Minor', 'Patch'];
+        $releases = $client->api('repo')->releases()->all($owner, $repo);
+
+        return empty($releases) ? null : $releases[0]['tag_name'];
+    }
+
+    /**
+     * Gets the new version number to use.
+     *
+     * The user may specify an exact version or whether this is a major, minor, or patch version.
+     *
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param \Herrera\Version\Version $currentVersion The current version.
+     * @return \Herrera\Version\Version The new version.
+     */
+    private function _getVersion(InputInterface $input, OutputInterface $output, Version $currentVersion)
+    {
+        $version = $input->getOption('release-version');
+        if ($version) {
+            return VersionParser::toVersion($version);
+        }
+
+        $builder = VersionBuilder::create()->importVersion($currentVersion);
+        $builder->clearBuild();
+        $builder->clearPreRelease();
+
+        $autoComplete = [
+            $builder->incrementPatch()->getVersion(),
+            $builder->incrementMinor()->getVersion(),
+            $builder->incrementMajor()->getVersion(),
+        ];
+
         $dialog = $this->getHelperSet()->get('dialog');
-        $choice = $dialog->select($output, '<question>Is this a major, minor, or patch release?</question>', $types, 2);
-        $incrementMethod = "increment{$types[$choice]}";
+        $version = $dialog->ask(
+            $output,
+            "<question>Version Number</question> <info>(current: {$currentVersion})</info>: ",
+            $autoComplete[0],
+            $autoComplete
+        );
 
-        $version = VersionParser::toBuilder($version);
-        $version->clearBuild();
-        $version->clearPreRelease();
-        $version->$incrementMethod();
+        return VersionParser::toVersion($version);
+    }
 
-        return VersionDumper::toString($version);
+    /**
+     * Checks whether the given version is a stable 1.0+ version.
+     *
+     * @param \Herrera\Version\Version $version The version to check.
+     * @return bool True if the version is a "prerelease", false otherwise.
+     */
+    private function _isPreRelease(Version $version)
+    {
+        return $version->getMajor() === 0 || !$version->isStable();
     }
 
     /**
@@ -118,6 +174,20 @@ class BuildRelease extends Command
         return $client->api('repo')->commits()->compare($owner, $repo, $tagName, 'master')['commits'];
     }
 
+    /**
+     * Fetch the commits for the given repo's master branch.
+     *
+     * @param \Github\Client $client The github client.
+     * @param string $owner The repository owner.
+     * @param string $repo The repository name.
+     * @return array The commits made to the repository's master branch.
+     */
+    private function _getCommitsOnMaster(GithubClient $client, $owner, $repo)
+    {
+        $paginator = new GithubResultPager($client);
+
+        return $paginator->fetchAll($client->api('repo')->commits(), 'all', [$owner, $repo, ['sha' => 'master']]);
+    }
 
     /**
      * Filters a list of commits down to just the pull requests and extracts the pull request info.
@@ -160,7 +230,7 @@ class BuildRelease extends Command
      */
     private function _getReleaseName(InputInterface $input, OutputInterface $output)
     {
-        $releaseName = $input->getOption('release_name');
+        $releaseName = $input->getOption('release-name');
         if ($releaseName) {
             return $releaseName;
         }
@@ -215,11 +285,18 @@ class BuildRelease extends Command
      * @param string $version The version number of the release.
      * @param string $releaseName The name of the release.
      * @param string $releaseNotes The formatted release notes.
+     * @param bool $preRelease The prerelease flag for github.
      * @return array The data to send to github.
      */
-    private function _buildRelease($version, $releaseName, $releaseNotes)
+    private function _buildRelease($version, $releaseName, $releaseNotes, $preRelease = false)
     {
-        return ['tag_name' => "v{$version}", 'name' => "Version {$version}: {$releaseName}", 'body' => $releaseNotes, 'draft' => true];
+        return [
+            'tag_name' => "v{$version}",
+            'name' => "Version {$version}: {$releaseName}",
+            'body' => $releaseNotes,
+            'prerelease' => $preRelease,
+            'draft' => true,
+        ];
     }
 
     /**
