@@ -96,7 +96,7 @@ class BuildRelease extends Command
     /**
      * Gets the new version number to use.
      *
-     * The user may specify an exact version or whether this is a major, minor, or patch version.
+     * The user may specify an exact version with major, minor, and patch versions being given as suggestions.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
