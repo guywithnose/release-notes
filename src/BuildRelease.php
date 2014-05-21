@@ -1,8 +1,6 @@
 <?php
 namespace Guywithnose\ReleaseNotes;
 
-use Github\Client as GithubClient;
-use Github\ResultPager as GithubResultPager;
 use Gregwar\Cache\Cache;
 use Herrera\Version\Builder as VersionBuilder;
 use Herrera\Version\Dumper as VersionDumper;
@@ -49,29 +47,34 @@ class BuildRelease extends Command
         $owner = $input->getArgument('repo-owner');
         $repo = $input->getArgument('repo-name');
 
-        $client = new GithubClient();
-        $client->authenticate($this->_getToken($input, $output), null, GithubClient::AUTH_HTTP_TOKEN);
+        $client = GithubClient::createWithToken($this->_getToken($input, $output), $owner, $repo);
 
-        $tagName = $this->_getTagName($client, $owner, $repo);
+        $tagName = $client->getLatestReleaseTagName();
 
         $currentVersion = null;
         $commits = [];
         if ($tagName !== null) {
             $currentVersion = VersionParser::toVersion(ltrim($tagName, 'v'));
-            $commits = $this->_getCommitsSinceTag($client, $owner, $repo, $tagName);
+            $commits = $client->getCommitsSinceTag($tagName);
         } else {
             $currentVersion = new Version();
-            $commits = $this->_getCommitsOnMaster($client, $owner, $repo);
+            $commits = $client->getCommitsOnMaster();
+        }
+
+        $pullRequests = $this->_getPullRequests($commits);
+        if (empty($pullRequests)) {
+            $output->writeln('<error>There were no unreleased pull requests found!</error>');
+            return 1;
         }
 
         $newVersion = $this->_getVersion($input, $output, $currentVersion);
         $preRelease = $this->_isPreRelease($newVersion);
         $releaseName = $this->_getReleaseName($input, $output);
 
-        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
+        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $pullRequests));
 
         $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease);
-        $this->_submitRelease($output, $client, $owner, $repo, $release);
+        $this->_submitRelease($output, $client, $release);
     }
 
     /**
@@ -97,24 +100,9 @@ class BuildRelease extends Command
     }
 
     /**
-     * Get the latest release's tag name for the given repo.
-     *
-     * @param \Github\Client $client The github client.
-     * @param string $owner The repository owner.
-     * @param string $repo The repository name.
-     * @return string|null The release's tag name if one exists.
-     */
-    private function _getTagName(GithubClient $client, $owner, $repo)
-    {
-        $releases = $client->api('repo')->releases()->all($owner, $repo);
-
-        return empty($releases) ? null : $releases[0]['tag_name'];
-    }
-
-    /**
      * Gets the new version number to use.
      *
-     * The user may specify an exact version or whether this is a major, minor, or patch version.
+     * The user may specify an exact version with major, minor, and patch versions being given as suggestions.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
@@ -158,35 +146,6 @@ class BuildRelease extends Command
     private function _isPreRelease(Version $version)
     {
         return $version->getMajor() === 0 || !$version->isStable();
-    }
-
-    /**
-     * Fetches the commits to the given repo since the given tag.
-     *
-     * @param \Github\Client $client The github client.
-     * @param string $owner The repository owner.
-     * @param string $repo The repository name.
-     * @param string $tagName The old tag.
-     * @return array The commits made to the repository since the old tag.
-     */
-    private function _getCommitsSinceTag(GithubClient $client, $owner, $repo, $tagName)
-    {
-        return $client->api('repo')->commits()->compare($owner, $repo, $tagName, 'master')['commits'];
-    }
-
-    /**
-     * Fetch the commits for the given repo's master branch.
-     *
-     * @param \Github\Client $client The github client.
-     * @param string $owner The repository owner.
-     * @param string $repo The repository name.
-     * @return array The commits made to the repository's master branch.
-     */
-    private function _getCommitsOnMaster(GithubClient $client, $owner, $repo)
-    {
-        $paginator = new GithubResultPager($client);
-
-        return $paginator->fetchAll($client->api('repo')->commits(), 'all', [$owner, $repo, ['sha' => 'master']]);
     }
 
     /**
@@ -303,13 +262,11 @@ class BuildRelease extends Command
      * Submits the given release to github.
      *
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
-     * @param \Github\Client $client The github client.
-     * @param string $owner The repository owner.
-     * @param string $repo The repository name.
+     * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
      * @param array $release The release information (@see $this->_buildRelease()).
      * @return void
      */
-    private function _submitRelease(OutputInterface $output, GithubClient $client, $owner, $repo, array $release)
+    private function _submitRelease(OutputInterface $output, GithubClient $client, array $release)
     {
         $dialog = $this->getHelperSet()->get('dialog');
         $formatter = $this->getHelperSet()->get('formatter');
@@ -317,7 +274,7 @@ class BuildRelease extends Command
         $formattedNotes = $formatter->formatBlock($lines, 'info', true);
 
         if ($dialog->askConfirmation($output, "{$formattedNotes}\n<question>Publish this release as a draft?</question> ", true)) {
-            $client->api('repo')->releases()->create($owner, $repo, $release);
+            $client->createRelease($release);
         }
     }
 }
