@@ -61,11 +61,17 @@ class BuildRelease extends Command
             $commits = $client->getCommitsOnMaster();
         }
 
+        $pullRequests = $this->_getPullRequests($commits);
+        if (empty($pullRequests)) {
+            $output->writeln('<error>There were no unreleased pull requests found!</error>');
+            return 1;
+        }
+
         $newVersion = $this->_getVersion($input, $output, $currentVersion);
         $preRelease = $this->_isPreRelease($newVersion);
         $releaseName = $this->_getReleaseName($input, $output);
 
-        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $this->_getPullRequests($commits)));
+        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $pullRequests));
 
         $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease);
         $this->_submitRelease($output, $client, $release);
