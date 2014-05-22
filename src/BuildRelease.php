@@ -129,7 +129,7 @@ class BuildRelease extends Command
         $dialog = $this->getHelperSet()->get('dialog');
         $version = $dialog->ask(
             $output,
-            "<question>Version Number</question> <info>(current: {$currentVersion})</info>: ",
+            "<question>Version Number</question> <info>(current: {$currentVersion}) (default: {$autoComplete[0]})</info>: ",
             $autoComplete[0],
             $autoComplete
         );
@@ -178,7 +178,7 @@ class BuildRelease extends Command
 
                 $typeIndex = $dialog->select(
                     $output,
-                    "{$formattedNotes}\n<question>What type of change is this PR?</question>",
+                    "{$formattedNotes}\n<question>What type of change is this PR?</question> <info>(default: 2 \"{$types[2]}\")</info> ",
                     $types,
                     2
                 );
@@ -233,7 +233,7 @@ class BuildRelease extends Command
         }
 
         $dialog = $this->getHelperSet()->get('dialog');
-        if ($dialog->askConfirmation($output, '<question>Use a random release name?</question> ', true)) {
+        if ($dialog->askConfirmation($output, '<question>Use a random release name?</question> <info>(default: yes)</info> ', true)) {
             return $this->_selectRandomReleaseName($output);
         }
 
@@ -257,7 +257,7 @@ class BuildRelease extends Command
 
             $useRelease = $dialog->askConfirmation(
                 $output,
-                "<question>Use release name '<boldquestion>{$releaseName}</boldquestion>'?</question> ",
+                "<question>Use release name '<boldquestion>{$releaseName}</boldquestion>'?</question> <info>(default: yes)</info> ",
                 true
             );
         } while (!$useRelease);
@@ -300,7 +300,13 @@ class BuildRelease extends Command
         $lines = array_merge([$release['name'], ''], explode("\n", $release['body']));
         $formattedNotes = $formatter->formatBlock($lines, 'info', true);
 
-        if ($dialog->askConfirmation($output, "{$formattedNotes}\n<question>Publish this release as a draft?</question> ", true)) {
+        if (
+            $dialog->askConfirmation(
+                $output,
+                "{$formattedNotes}\n<question>Publish this release as a draft?</question> <info>(default: yes)</info> ",
+                true
+            )
+        ) {
             $client->createRelease($release);
         }
     }
