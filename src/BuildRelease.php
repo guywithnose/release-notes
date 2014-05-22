@@ -61,7 +61,7 @@ class BuildRelease extends Command
             $commits = $client->getCommitsOnMaster();
         }
 
-        $pullRequests = $this->_getPullRequests($commits);
+        $pullRequests = $this->_getPullRequests($output, $commits);
         if (empty($pullRequests)) {
             $output->writeln('<error>There were no unreleased pull requests found!</error>');
             return 1;
@@ -70,8 +70,7 @@ class BuildRelease extends Command
         $newVersion = $this->_getVersion($input, $output, $currentVersion);
         $preRelease = $this->_isPreRelease($newVersion);
         $releaseName = $this->_getReleaseName($input, $output);
-
-        $releaseNotes = implode("\n", array_map([$this, '_formatPullRequest'], $pullRequests));
+        $releaseNotes = $this->_getReleaseNotes($pullRequests);
 
         $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease);
         $this->_submitRelease($output, $client, $release);
@@ -151,22 +150,60 @@ class BuildRelease extends Command
     /**
      * Filters a list of commits down to just the pull requests and extracts the pull request info.
      *
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param array $commits The commits.
-     * @return array The pull requests, where each pull request has a PR `number` and a commit `message`.
+     * @return array The pull requests, separated by type, where each pull request has a PR `number` and a commit `message`.
      */
-    private function _getPullRequests(array $commits)
+    private function _getPullRequests(OutputInterface $output, array $commits)
     {
-        $results = [];
+        $results = [
+            'Backwards Compatibility Breakers' => [],
+            'Major Features' => [],
+            'Minor Features' => [],
+            'Bug Fixes' => [],
+            'Developer Changes' => [],
+        ];
+        $types = array_keys($results);
+        $dialog = $this->getHelperSet()->get('dialog');
+        $formatter = $this->getHelperSet()->get('formatter');
+
         foreach ($commits as $commit) {
             if (
                 count($commit['parents']) === 2 &&
                 preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)
             ) {
-                $results[] = ['number' => $matches[1], 'message' => $matches[2]];
+                $lines = array_merge(["Pull Request #{$matches[1]}", ''], explode("\n", $matches[2]));
+                $formattedNotes = $formatter->formatBlock($lines, 'info', true);
+
+                $typeIndex = $dialog->select(
+                    $output,
+                    "{$formattedNotes}\n<question>What type of change is this PR?</question>",
+                    $types,
+                    2
+                );
+
+                $type = $types[$typeIndex];
+                $results[$type][] = ['number' => $matches[1], 'message' => $matches[2]];
             }
         }
 
-        return $results;
+        return array_filter($results);
+    }
+
+    /**
+     * Formats the pull requests (as returned by _getPullRequests) into the release notes.
+     *
+     * @param array $pullRequests The pull requests.
+     * @return string The pull request formatted for the release notes.
+     */
+    private function _getReleaseNotes(array $pullRequests)
+    {
+        $sections = [];
+        foreach ($pullRequests as $sectionTitle => $pulls) {
+            $sections[] = "## {$sectionTitle}\n" . implode("\n", array_map([$this, '_formatPullRequest'], $pulls));
+        }
+
+        return implode("\n\n", $sections);
     }
 
     /**
