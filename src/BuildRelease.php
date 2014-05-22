@@ -151,7 +151,7 @@ class BuildRelease extends Command
     /**
      * Filters a list of commits down to just the pull requests and extracts the pull request info.
      *
-     * @param array The commits.
+     * @param array $commits The commits.
      * @return array The pull requests, where each pull request has a PR `number` and a commit `message`.
      */
     private function _getPullRequests(array $commits)
