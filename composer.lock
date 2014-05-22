@@ -3,7 +3,7 @@
         "This file locks the dependencies of your project to a known state",
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
     ],
-    "hash": "143757c617a8b707944f2e1b69fbcea1",
+    "hash": "c27dff3c81a700117f8aae16fc6a1ee6",
     "packages": [
         {
             "name": "gregwar/cache",
@@ -253,6 +253,51 @@
                 "github"
             ],
             "time": "2014-01-05 04:09:12"
+        },
+        {
+            "name": "nubs/random-name-generator",
+            "version": "v0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nubs/random-name-generator.git",
+                "reference": "5651e9643722ca37bfd52741938c7fa982c8eac6"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nubs/random-name-generator/zipball/5651e9643722ca37bfd52741938c7fa982c8eac6",
+                "reference": "5651e9643722ca37bfd52741938c7fa982c8eac6",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.2"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Nubs\\RandomNameGenerator\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Spencer Rinehart",
+                    "email": "anubis@overthemonkey.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A library to create interesting, sometimes entertaining, random names.",
+            "keywords": [
+                "generator",
+                "random",
+                "video game"
+            ],
+            "time": "2014-05-22 01:43:40"
         },
         {
             "name": "symfony/console",
