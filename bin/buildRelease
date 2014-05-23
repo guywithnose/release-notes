@@ -16,5 +16,5 @@ require RELEASE_NOTES_COMPOSER_INSTALL;
 
 use Guywithnose\ReleaseNotes\Application;
 
-$application = new Application();
+$application = new Application('Build Release', '0.1.0');
 $application->run();
