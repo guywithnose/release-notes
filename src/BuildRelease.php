@@ -138,6 +138,16 @@ class BuildRelease extends Command
     }
 
     /**
+     * Get the different categories of changes that can be used.
+     *
+     * @return array The types of changes that can be used.
+     */
+    private function _getChangeTypes()
+    {
+        return ['Backwards Compatibility Breakers', 'Major Features', 'Minor Features', 'Bug Fixes', 'Developer Changes'];
+    }
+
+    /**
      * Filters a list of commits down to just the pull requests and extracts the pull request info.
      *
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
@@ -146,14 +156,8 @@ class BuildRelease extends Command
      */
     private function _getPullRequests(OutputInterface $output, array $commits)
     {
-        $results = [
-            'Backwards Compatibility Breakers' => [],
-            'Major Features' => [],
-            'Minor Features' => [],
-            'Bug Fixes' => [],
-            'Developer Changes' => [],
-        ];
-        $types = array_keys($results);
+        $types = $this->_getChangeTypes();
+        $results = array_combine($types, array_fill(0, count($types), []));
         $dialog = $this->getHelperSet()->get('dialog');
         $formatter = $this->getHelperSet()->get('formatter');
 
