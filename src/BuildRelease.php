@@ -120,11 +120,11 @@ class BuildRelease extends Command
         $minorVersion = $builder->incrementMinor()->getVersion();
         $majorVersion = $builder->incrementMajor()->getVersion();
 
-        if ($largestChange === 'Backwards Compatibility Breakers') {
+        if ($largestChange === 'bc') {
             return [$majorVersion, $minorVersion, $patchVersion];
         }
 
-        if ($largestChange === 'Major Features') {
+        if ($largestChange === 'M') {
             return [$minorVersion, $patchVersion, $majorVersion];
         }
 
@@ -186,7 +186,7 @@ class BuildRelease extends Command
     private function _getPullRequests(OutputInterface $output, array $commits)
     {
         $types = $this->_getChangeTypes();
-        $results = array_combine($types, array_fill(0, count($types), []));
+        $results = array_combine(array_keys($types), array_fill(0, count($types), []));
         $dialog = $this->getHelperSet()->get('dialog');
         $formatter = $this->getHelperSet()->get('formatter');
 
@@ -198,14 +198,13 @@ class BuildRelease extends Command
                 $lines = array_merge(["Pull Request #{$matches[1]}", ''], explode("\n", $matches[2]));
                 $formattedNotes = $formatter->formatBlock($lines, 'info', true);
 
-                $typeIndex = $dialog->select(
+                $type = $dialog->select(
                     $output,
                     "{$formattedNotes}\n<question>What type of change is this PR?</question> <info>(default: m \"{$types['m']}\")</info> ",
                     $types,
                     'm'
                 );
 
-                $type = $types[$typeIndex];
                 $results[$type][] = ['number' => $matches[1], 'message' => $matches[2]];
             }
         }
@@ -221,9 +220,10 @@ class BuildRelease extends Command
      */
     private function _getReleaseNotes(array $pullRequests)
     {
+        $types = $this->_getChangeTypes();
         $sections = [];
-        foreach ($pullRequests as $sectionTitle => $pulls) {
-            $sections[] = "## {$sectionTitle}\n" . implode("\n", array_map([$this, '_formatPullRequest'], $pulls));
+        foreach ($pullRequests as $type => $pulls) {
+            $sections[] = "## {$types[$type]}\n" . implode("\n", array_map([$this, '_formatPullRequest'], $pulls));
         }
 
         return implode("\n\n", $sections);
