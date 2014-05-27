@@ -6,6 +6,7 @@ use Herrera\Version\Builder as VersionBuilder;
 use Herrera\Version\Dumper as VersionDumper;
 use Herrera\Version\Parser as VersionParser;
 use Herrera\Version\Version;
+use Nubs\RandomNameGenerator\Vgng;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputArgument;
@@ -250,8 +251,9 @@ class BuildRelease extends Command
         $dialog = $this->getHelperSet()->get('dialog');
         $releaseName = null;
 
+        $randomNameGenerator = new Vgng();
         do {
-            $releaseName = $this->_getRandomReleaseName();
+            $releaseName = $randomNameGenerator->getName();
 
             $useRelease = $dialog->askConfirmation(
                 $output,
@@ -261,18 +263,6 @@ class BuildRelease extends Command
         } while (!$useRelease);
 
         return $releaseName;
-    }
-
-    /**
-     * Gets a fun random name for the release.
-     *
-     * @return string The name for the release.
-     */
-    private function _getRandomReleaseName()
-    {
-        $randomNameDir = dirname(__DIR__) . '/vgng';
-
-        return exec("cd {$randomNameDir}; ./vgng.py");
     }
 
     /**
