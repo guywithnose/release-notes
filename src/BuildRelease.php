@@ -152,7 +152,7 @@ class BuildRelease extends Command
         $dialog = $this->getHelperSet()->get('dialog');
         $version = $dialog->ask(
             $output,
-            "<question>Version Number</question> <info>(current: {$currentVersion}) (default: {$autoComplete[0]})</info>: ",
+            "<question>Version Number</question> <info>(current: {$currentVersion}) (default: {$suggestedVersions[0]})</info>: ",
             $suggestedVersions[0],
             $suggestedVersions
         );
