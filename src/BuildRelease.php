@@ -69,7 +69,7 @@ class BuildRelease extends Command
         }
 
         $newVersion = $this->_getVersion($input, $output, $currentVersion);
-        $preRelease = $this->_isPreRelease($newVersion);
+        $preRelease = !$newVersion->isStable();
         $releaseName = $this->_getReleaseName($input, $output);
         $releaseNotes = $this->_getReleaseNotes($pullRequests);
 
@@ -135,17 +135,6 @@ class BuildRelease extends Command
         );
 
         return VersionParser::toVersion($version);
-    }
-
-    /**
-     * Checks whether the given version is a stable 1.0+ version.
-     *
-     * @param \Herrera\Version\Version $version The version to check.
-     * @return bool True if the version is a "prerelease", false otherwise.
-     */
-    private function _isPreRelease(Version $version)
-    {
-        return $version->getMajor() === 0 || !$version->isStable();
     }
 
     /**
