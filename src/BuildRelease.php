@@ -167,7 +167,13 @@ class BuildRelease extends Command
      */
     private function _getChangeTypes()
     {
-        return ['Backwards Compatibility Breakers', 'Major Features', 'Minor Features', 'Bug Fixes', 'Developer Changes'];
+        return [
+            'bc' => 'Backwards Compatibility Breakers',
+            'M' => 'Major Features',
+            'm' => 'Minor Features',
+            'b' => 'Bug Fixes',
+            'd' => 'Developer Changes',
+        ];
     }
 
     /**
@@ -194,9 +200,9 @@ class BuildRelease extends Command
 
                 $typeIndex = $dialog->select(
                     $output,
-                    "{$formattedNotes}\n<question>What type of change is this PR?</question> <info>(default: 2 \"{$types[2]}\")</info> ",
+                    "{$formattedNotes}\n<question>What type of change is this PR?</question> <info>(default: m \"{$types['m']}\")</info> ",
                     $types,
-                    2
+                    'm'
                 );
 
                 $type = $types[$typeIndex];
