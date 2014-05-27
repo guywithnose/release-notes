@@ -68,7 +68,8 @@ class BuildRelease extends Command
             return 1;
         }
 
-        $newVersion = $this->_getVersion($input, $output, $currentVersion);
+        $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $pullRequests);
+        $newVersion = $this->_getVersion($input, $output, $currentVersion, $suggestedVersions);
         $preRelease = !$newVersion->isStable();
         $releaseName = $this->_getReleaseName($input, $output);
         $releaseNotes = $this->_getReleaseNotes($pullRequests);
@@ -100,41 +101,73 @@ class BuildRelease extends Command
     }
 
     /**
+     * Get the suggested new versions based off the current version and the given categorized pull requests.
+     *
+     * The order of the suggestions is driven off of the pull request categories.
+     *
+     * @param \Herrera\Version\Version $currentVersion The current version.
+     * @param array $pullRequests The categorized pull requests.
+     */
+    private function _getSuggestedNewVersions(Version $currentVersion, array $pullRequests)
+    {
+        $largestChange = array_keys($pullRequests)[0];
+
+        $builder = VersionBuilder::create()->importVersion($currentVersion);
+        $builder->clearBuild();
+        $builder->clearPreRelease();
+
+        $patchVersion = $builder->incrementPatch()->getVersion();
+        $minorVersion = $builder->incrementMinor()->getVersion();
+        $majorVersion = $builder->incrementMajor()->getVersion();
+
+        if ($largestChange === 'Backwards Compatibility Breakers') {
+            return [$majorVersion, $minorVersion, $patchVersion];
+        }
+
+        if ($largestChange === 'Major Features') {
+            return [$minorVersion, $patchVersion, $majorVersion];
+        }
+
+        return [$patchVersion, $minorVersion, $majorVersion];
+    }
+
+    /**
      * Gets the new version number to use.
      *
-     * The user may specify an exact version with major, minor, and patch versions being given as suggestions.
+     * The user may specify an exact version with the given auto-complete versions being given as suggestions.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param \Herrera\Version\Version $currentVersion The current version.
+     * @param array $suggestedVersions The auto-complete versions for user suggestions.
      * @return \Herrera\Version\Version The new version.
      */
-    private function _getVersion(InputInterface $input, OutputInterface $output, Version $currentVersion)
+    private function _getVersion(InputInterface $input, OutputInterface $output, Version $currentVersion, array $suggestedVersions)
     {
         $version = $input->getOption('release-version');
         if ($version) {
             return VersionParser::toVersion($version);
         }
 
-        $builder = VersionBuilder::create()->importVersion($currentVersion);
-        $builder->clearBuild();
-        $builder->clearPreRelease();
-
-        $autoComplete = [
-            $builder->incrementPatch()->getVersion(),
-            $builder->incrementMinor()->getVersion(),
-            $builder->incrementMajor()->getVersion(),
-        ];
-
         $dialog = $this->getHelperSet()->get('dialog');
         $version = $dialog->ask(
             $output,
             "<question>Version Number</question> <info>(current: {$currentVersion}) (default: {$autoComplete[0]})</info>: ",
-            $autoComplete[0],
-            $autoComplete
+            $suggestedVersions[0],
+            $suggestedVersions
         );
 
         return VersionParser::toVersion($version);
+    }
+
+    /**
+     * Get the different categories of changes that can be used.
+     *
+     * @return array The types of changes that can be used.
+     */
+    private function _getChangeTypes()
+    {
+        return ['Backwards Compatibility Breakers', 'Major Features', 'Minor Features', 'Bug Fixes', 'Developer Changes'];
     }
 
     /**
@@ -146,14 +179,8 @@ class BuildRelease extends Command
      */
     private function _getPullRequests(OutputInterface $output, array $commits)
     {
-        $results = [
-            'Backwards Compatibility Breakers' => [],
-            'Major Features' => [],
-            'Minor Features' => [],
-            'Bug Fixes' => [],
-            'Developer Changes' => [],
-        ];
-        $types = array_keys($results);
+        $types = $this->_getChangeTypes();
+        $results = array_combine($types, array_fill(0, count($types), []));
         $dialog = $this->getHelperSet()->get('dialog');
         $formatter = $this->getHelperSet()->get('formatter');
 
