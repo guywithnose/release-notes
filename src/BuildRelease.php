@@ -173,6 +173,7 @@ class BuildRelease extends Command
             'm' => 'Minor Features',
             'b' => 'Bug Fixes',
             'd' => 'Developer Changes',
+            'x' => 'Remove Pull Request from Release Notes',
         ];
     }
 
@@ -205,7 +206,9 @@ class BuildRelease extends Command
                     'm'
                 );
 
-                $results[$type][] = ['number' => $matches[1], 'message' => $matches[2]];
+                if ($type !== 'x') {
+                    $results[$type][] = ['number' => $matches[1], 'message' => $matches[2]];
+                }
             }
         }
 
