@@ -7,12 +7,14 @@ use Herrera\Version\Dumper as VersionDumper;
 use Herrera\Version\Parser as VersionParser;
 use Herrera\Version\Version;
 use Nubs\RandomNameGenerator\Vgng;
+use Nubs\Sensible\Editor;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Process\ProcessBuilder;
 
 class BuildRelease extends Command
 {
@@ -73,6 +75,7 @@ class BuildRelease extends Command
         $preRelease = !$newVersion->isStable();
         $releaseName = $this->_getReleaseName($input, $output);
         $releaseNotes = $this->_getReleaseNotes($pullRequests);
+        $releaseNotes = $this->_amendReleaseNotes($input, new Editor(), new ProcessBuilder(), $releaseNotes);
 
         $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease);
         $this->_submitRelease($output, $client, $release);
@@ -230,6 +233,35 @@ class BuildRelease extends Command
         }
 
         return implode("\n\n", $sections);
+    }
+
+    /**
+     * Allows the user to amend the release notes.
+     *
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Nubs\Sensible\Editor $editor The editor loader for allowing the user to customize the release notes.
+     * @param \Symfony\Component\Process\ProcessBuilder $builder The process builder for loading the editor.
+     * @param string $releaseNotes The release notes to amend.
+     * @return string The amended release notes.
+     */
+    private function _amendReleaseNotes(InputInterface $input, Editor $editor, ProcessBuilder $processBuilder, $releaseNotes)
+    {
+        if (!$input->isInteractive()) {
+            return $releaseNotes;
+        }
+
+        $releaseNotesFile = tempnam(sys_get_temp_dir(), 'buildRelease');
+        file_put_contents($releaseNotesFile, $releaseNotes);
+
+        $proc = $processBuilder->setPrefix($editor->get())->setArguments([$releaseNotesFile])->getProcess();
+        $proc->setTty(true)->run();
+        if ($proc->isSuccessful()) {
+            $releaseNotes = file_get_contents($releaseNotesFile);
+        }
+
+        unlink($releaseNotesFile);
+
+        return $releaseNotes;
     }
 
     /**
