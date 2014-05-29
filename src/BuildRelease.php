@@ -303,7 +303,7 @@ class BuildRelease extends Command
     {
         return [
             'tag_name' => "v{$version}",
-            'name' => "Version {$version}: {$releaseName}",
+            'name' => "Version {$version}" . ($releaseName ? ": {$releaseName}" : ''),
             'body' => $releaseNotes,
             'prerelease' => $preRelease,
             'draft' => true,
