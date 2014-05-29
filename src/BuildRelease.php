@@ -325,13 +325,7 @@ class BuildRelease extends Command
         $lines = array_merge([$release['name'], ''], explode("\n", $release['body']));
         $formattedNotes = $formatter->formatBlock($lines, 'info', true);
 
-        if (
-            $dialog->askConfirmation(
-                $output,
-                "{$formattedNotes}\n<question>Publish this release as a draft?</question> <info>(default: yes)</info> ",
-                true
-            )
-        ) {
+        if ($dialog->askConfirmation($output, "{$formattedNotes}\n<question>Continue?</question> <info>(default: yes)</info> ", true)) {
             $client->createRelease($release);
         }
     }
