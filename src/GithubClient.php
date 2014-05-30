@@ -61,23 +61,25 @@ class GithubClient
      * Fetches the commits to the repo since the given tag.
      *
      * @param string $tagName The old tag.
+     * @param string $branch The branch to check
      * @return array The commits made to the repository since the old tag.
      */
-    public function getCommitsSinceTag($tagName)
+    public function getCommitsSinceTag($tagName, $branch = 'masterBranch')
     {
-        return $this->_client->api('repo')->commits()->compare($this->_owner, $this->_repo, $tagName, 'master')['commits'];
+        return $this->_client->api('repo')->commits()->compare($this->_owner, $this->_repo, $tagName, $branch)['commits'];
     }
 
     /**
-     * Fetch the commits for the repo's master branch.
+     * Fetch the commits for the repo's branch.
      *
-     * @return array The commits made to the repository's master branch.
+     * @param string $branch The branch to check
+     * @return array The commits made to the repository's branch.
      */
-    public function getCommitsOnMaster()
+    public function getCommitsOnBranch($branch = 'master')
     {
         $paginator = new ResultPager($this->_client);
 
-        return $paginator->fetchAll($this->_client->api('repo')->commits(), 'all', [$this->_owner, $this->_repo, ['sha' => 'master']]);
+        return $paginator->fetchAll($this->_client->api('repo')->commits(), 'all', [$this->_owner, $this->_repo, ['sha' => $branch]]);
     }
 
     /**

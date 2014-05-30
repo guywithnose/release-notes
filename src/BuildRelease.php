@@ -29,6 +29,7 @@ class BuildRelease extends Command
             ->setDescription('Prepare release notes for a github repository')
             ->addArgument('repo-owner', InputArgument::REQUIRED, 'The github repository owner')
             ->addArgument('repo-name', InputArgument::REQUIRED, 'The github repository name')
+            ->addOption('target-branch', null, InputOption::VALUE_REQUIRED, 'The name of the target branch', 'master')
             ->addOption('release-name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
             ->addOption('release-version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')
             ->addOption('access-token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
@@ -49,6 +50,7 @@ class BuildRelease extends Command
 
         $owner = $input->getArgument('repo-owner');
         $repo = $input->getArgument('repo-name');
+        $targetBranch = $input->getOption('target-branch');
 
         $client = GithubClient::createWithToken($this->_getToken($input, $output), $owner, $repo);
 
@@ -58,10 +60,10 @@ class BuildRelease extends Command
         $commits = [];
         if ($tagName !== null) {
             $currentVersion = VersionParser::toVersion(ltrim($tagName, 'v'));
-            $commits = $client->getCommitsSinceTag($tagName);
+            $commits = $client->getCommitsSinceTag($tagName, $targetBranch);
         } else {
             $currentVersion = new Version();
-            $commits = $client->getCommitsOnMaster();
+            $commits = $client->getCommitsOnBranch($targetBranch);
         }
 
         $pullRequests = $this->_getPullRequests($output, $commits);
@@ -77,7 +79,7 @@ class BuildRelease extends Command
         $releaseNotes = $this->_getReleaseNotes($pullRequests);
         $releaseNotes = $this->_amendReleaseNotes($input, new Editor(), new ProcessBuilder(), $releaseNotes);
 
-        $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease);
+        $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease, $targetBranch);
         $this->_submitRelease($output, $client, $release);
     }
 
@@ -328,10 +330,11 @@ class BuildRelease extends Command
      * @param string $version The version number of the release.
      * @param string $releaseName The name of the release.
      * @param string $releaseNotes The formatted release notes.
+     * @param string $targetCommitish The target commit/branch/etc. to tag.
      * @param bool $preRelease The prerelease flag for github.
      * @return array The data to send to github.
      */
-    private function _buildRelease($version, $releaseName, $releaseNotes, $preRelease = false)
+    private function _buildRelease($version, $releaseName, $releaseNotes, $preRelease = false, $targetCommitish = null)
     {
         return [
             'tag_name' => "v{$version}",
@@ -339,6 +342,7 @@ class BuildRelease extends Command
             'body' => $releaseNotes,
             'prerelease' => $preRelease,
             'draft' => true,
+            'target_commitish' => $targetCommitish,
         ];
     }
 
