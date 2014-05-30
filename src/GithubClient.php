@@ -48,13 +48,20 @@ class GithubClient
     /**
      * Get the latest release's tag name for the repo.
      *
+     * @param string $releaseBranch The branch to find releases on, or null to find tag from any branch.
      * @return string|null The release's tag name if one exists.
      */
-    public function getLatestReleaseTagName()
+    public function getLatestReleaseTagName($releaseBranch = null)
     {
         $releases = $this->_client->api('repo')->releases()->all($this->_owner, $this->_repo);
 
-        return empty($releases) ? null : $releases[0]['tag_name'];
+        foreach ($releases as $release) {
+            if ($releaseBranch === null || $release['target_commitish'] === $releaseBranch) {
+                return $release['tag_name'];
+            }
+        }
+
+        return null;
     }
 
     /**
