@@ -30,6 +30,7 @@ class BuildRelease extends Command
             ->addArgument('repo-owner', InputArgument::REQUIRED, 'The github repository owner')
             ->addArgument('repo-name', InputArgument::REQUIRED, 'The github repository name')
             ->addOption('target-branch', null, InputOption::VALUE_REQUIRED, 'The name of the target branch', 'master')
+            ->addOption('previous-tag-name', null, InputOption::VALUE_REQUIRED, 'The name of the previous tag')
             ->addOption('release-name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
             ->addOption('release-version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')
             ->addOption('access-token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
@@ -54,7 +55,7 @@ class BuildRelease extends Command
 
         $client = GithubClient::createWithToken($this->_getToken($input, $output), $owner, $repo);
 
-        $tagName = $client->getLatestReleaseTagName();
+        $tagName = $this->_getBaseTagName($input, $output, $client);
 
         $currentVersion = null;
         $commits = [];
@@ -103,6 +104,27 @@ class BuildRelease extends Command
 
         $cache = new Cache($input->getOption('cache-dir'));
         return $cache->getOrCreate($input->getOption('token-file'), [], $askForToken);
+    }
+
+    /**
+     * Gets the tag this release is based off of.
+     *
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
+     * @return string The github access token.
+     */
+    private function _getBaseTagName(InputInterface $input, OutputInterface $output, GithubClient $client)
+    {
+        $tag = $input->getOption('previous-tag-name');
+        if ($tag) {
+            return $tag;
+        }
+
+        $dialog = $this->getHelperSet()->get('dialog');
+        $latestTag = $client->getLatestReleaseTagName();
+
+        return $dialog->ask($output, "<question>Please enter the base tag</question> <info>(default: {$latestTag})</info>: ", $latestTag);
     }
 
     /**
