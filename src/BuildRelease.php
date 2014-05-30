@@ -55,7 +55,7 @@ class BuildRelease extends Command
 
         $client = GithubClient::createWithToken($this->_getToken($input, $output), $owner, $repo);
 
-        $tagName = $this->_getBaseTagName($input, $output, $client);
+        $tagName = $this->_getBaseTagName($input, $output, $client, $targetBranch);
 
         $currentVersion = null;
         $commits = [];
@@ -112,9 +112,10 @@ class BuildRelease extends Command
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
+     * @param string $releaseBranch The branch to find releases on, or null to find tag from any branch.
      * @return string The github access token.
      */
-    private function _getBaseTagName(InputInterface $input, OutputInterface $output, GithubClient $client)
+    private function _getBaseTagName(InputInterface $input, OutputInterface $output, GithubClient $client, $releaseBranch)
     {
         $tag = $input->getOption('previous-tag-name');
         if ($tag) {
@@ -122,7 +123,7 @@ class BuildRelease extends Command
         }
 
         $dialog = $this->getHelperSet()->get('dialog');
-        $latestTag = $client->getLatestReleaseTagName();
+        $latestTag = $client->getLatestReleaseTagName($releaseBranch);
 
         return $dialog->ask($output, "<question>Please enter the base tag</question> <info>(default: {$latestTag})</info>: ", $latestTag);
     }
