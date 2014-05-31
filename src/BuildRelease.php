@@ -2,10 +2,6 @@
 namespace Guywithnose\ReleaseNotes;
 
 use Gregwar\Cache\Cache;
-use Herrera\Version\Builder as VersionBuilder;
-use Herrera\Version\Dumper as VersionDumper;
-use Herrera\Version\Parser as VersionParser;
-use Herrera\Version\Version;
 use Nubs\RandomNameGenerator\Vgng;
 use Nubs\Sensible\Editor;
 use Symfony\Component\Console\Command\Command;
@@ -56,14 +52,12 @@ class BuildRelease extends Command
         $client = GithubClient::createWithToken($this->_getToken($input, $output), $owner, $repo);
 
         $tagName = $this->_getBaseTagName($input, $output, $client, $targetBranch);
+        $currentVersion = Version::createFromString($tagName);;
 
-        $currentVersion = null;
         $commits = [];
         if ($tagName !== null) {
-            $currentVersion = VersionParser::toVersion(ltrim($tagName, 'v'));
             $commits = $client->getCommitsSinceTag($tagName, $targetBranch);
         } else {
-            $currentVersion = new Version();
             $commits = $client->getCommitsOnBranch($targetBranch);
         }
 
@@ -75,12 +69,11 @@ class BuildRelease extends Command
 
         $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $pullRequests);
         $newVersion = $this->_getVersion($input, $output, $currentVersion, $suggestedVersions);
-        $preRelease = !$newVersion->isStable();
         $releaseName = $this->_getReleaseName($input, $output);
         $releaseNotes = $this->_getReleaseNotes($pullRequests);
         $releaseNotes = $this->_amendReleaseNotes($input, new Editor(), new ProcessBuilder(), $releaseNotes);
 
-        $release = $this->_buildRelease((string)$newVersion, $releaseName, $releaseNotes, $preRelease, $targetBranch);
+        $release = $this->_buildRelease($newVersion, $releaseName, $releaseNotes, $targetBranch);
         $this->_submitRelease($output, $client, $release);
     }
 
@@ -133,30 +126,23 @@ class BuildRelease extends Command
      *
      * The order of the suggestions is driven off of the pull request categories.
      *
-     * @param \Herrera\Version\Version $currentVersion The current version.
+     * @param \Guywithnose\ReleaseNotes\Version $currentVersion The current version.
      * @param array $pullRequests The categorized pull requests.
      */
     private function _getSuggestedNewVersions(Version $currentVersion, array $pullRequests)
     {
         $largestChange = array_keys($pullRequests)[0];
-
-        $builder = VersionBuilder::create()->importVersion($currentVersion);
-        $builder->clearBuild();
-        $builder->clearPreRelease();
-
-        $patchVersion = $builder->incrementPatch()->getVersion();
-        $minorVersion = $builder->incrementMinor()->getVersion();
-        $majorVersion = $builder->incrementMajor()->getVersion();
+        $increments = $currentVersion->getSemanticIncrements();
 
         if ($largestChange === 'bc') {
-            return [$majorVersion, $minorVersion, $patchVersion];
+            return [$increments['major'], $increments['minor'], $increments['patch']];
         }
 
         if ($largestChange === 'M') {
-            return [$minorVersion, $patchVersion, $majorVersion];
+            return [$increments['minor'], $increments['patch'], $increments['major']];
         }
 
-        return [$patchVersion, $minorVersion, $majorVersion];
+        return [$increments['patch'], $increments['minor'], $increments['major']];
     }
 
     /**
@@ -166,15 +152,15 @@ class BuildRelease extends Command
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
-     * @param \Herrera\Version\Version $currentVersion The current version.
+     * @param \Guywithnose\ReleaseNotes\Version $currentVersion The current version.
      * @param array $suggestedVersions The auto-complete versions for user suggestions.
-     * @return \Herrera\Version\Version The new version.
+     * @return \Guywithnose\ReleaseNotes\Version The new version.
      */
     private function _getVersion(InputInterface $input, OutputInterface $output, Version $currentVersion, array $suggestedVersions)
     {
         $version = $input->getOption('release-version');
         if ($version) {
-            return VersionParser::toVersion($version);
+            return Version::createFromString($version);
         }
 
         $dialog = $this->getHelperSet()->get('dialog');
@@ -185,7 +171,7 @@ class BuildRelease extends Command
             $suggestedVersions
         );
 
-        return VersionParser::toVersion($version);
+        return Version::createFromString($version);
     }
 
     /**
@@ -350,20 +336,19 @@ class BuildRelease extends Command
     /**
      * Builds the full release information to send to github.
      *
-     * @param string $version The version number of the release.
+     * @param \Guywithnose\Release\Version  $version The version of the release.
      * @param string $releaseName The name of the release.
      * @param string $releaseNotes The formatted release notes.
      * @param string $targetCommitish The target commit/branch/etc. to tag.
-     * @param bool $preRelease The prerelease flag for github.
      * @return array The data to send to github.
      */
-    private function _buildRelease($version, $releaseName, $releaseNotes, $preRelease = false, $targetCommitish = null)
+    private function _buildRelease(Version $version, $releaseName, $releaseNotes, $targetCommitish = null)
     {
         return [
-            'tag_name' => "v{$version}",
+            'tag_name' => $version->tagName(),
             'name' => "Version {$version}" . ($releaseName ? ": {$releaseName}" : ''),
             'body' => $releaseNotes,
-            'prerelease' => $preRelease,
+            'prerelease' => $version->isPreRelease(),
             'draft' => true,
             'target_commitish' => $targetCommitish,
         ];
