@@ -2,6 +2,10 @@
 namespace Guywithnose\ReleaseNotes;
 
 use Gregwar\Cache\Cache;
+use Guywithnose\ReleaseNotes\Change\Change;
+use Guywithnose\ReleaseNotes\Change\ChangeFactory;
+use Guywithnose\ReleaseNotes\Change\ChangeList;
+use Guywithnose\ReleaseNotes\Change\ChangeListFactory;
 use Nubs\RandomNameGenerator\Vgng;
 use Nubs\Sensible\Editor;
 use Symfony\Component\Console\Command\Command;
@@ -54,24 +58,21 @@ class BuildRelease extends Command
         $tagName = $this->_getBaseTagName($input, $output, $client, $targetBranch);
         $currentVersion = Version::createFromString($tagName);;
 
-        $commits = [];
-        if ($tagName !== null) {
-            $commits = $client->getCommitsSinceTag($tagName, $targetBranch);
-        } else {
-            $commits = $client->getCommitsOnBranch($targetBranch);
-        }
+        $selectTypeForChange = function(Change $change) use($output) {
+            return $this->_selectTypeForChange($output, $change);
+        };
 
-        $pullRequests = $this->_getPullRequests($output, $commits);
-        if (empty($pullRequests)) {
-            $output->writeln('<error>There were no unreleased pull requests found!</error>');
+        $changeListFactory = new ChangeListFactory(new ChangeFactory($selectTypeForChange));
+        $changes = $changeListFactory->createFromGithubRange($client, $tagName, $targetBranch);
+        if ($changes->isEmpty()) {
+            $output->writeln('<error>There were no unreleased changes found!</error>');
             return 1;
         }
 
-        $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $pullRequests);
+        $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $changes);
         $newVersion = $this->_getVersion($input, $output, $currentVersion, $suggestedVersions);
         $releaseName = $this->_getReleaseName($input, $output);
-        $releaseNotes = $this->_getReleaseNotes($pullRequests);
-        $releaseNotes = $this->_amendReleaseNotes($input, new Editor(), new ProcessBuilder(), $releaseNotes);
+        $releaseNotes = $this->_amendReleaseNotes($input, new Editor(), new ProcessBuilder(), $changes->display());
 
         $release = $this->_buildRelease($newVersion, $releaseName, $releaseNotes, $targetBranch);
         $this->_submitRelease($output, $client, $release);
@@ -122,23 +123,24 @@ class BuildRelease extends Command
     }
 
     /**
-     * Get the suggested new versions based off the current version and the given categorized pull requests.
+     * Get the suggested new versions based off the current version and the given change list.
      *
-     * The order of the suggestions is driven off of the pull request categories.
+     * The order of the suggestions is driven off of the "largest" change in the change list.
      *
      * @param \Guywithnose\ReleaseNotes\Version $currentVersion The current version.
-     * @param array $pullRequests The categorized pull requests.
+     * @param \Guywithnose\ReleaseNotes\Change\ChangeList $changes The changes.
+     * @return array The semantic versions that work for a new version.
      */
-    private function _getSuggestedNewVersions(Version $currentVersion, array $pullRequests)
+    private function _getSuggestedNewVersions(Version $currentVersion, ChangeList $changes)
     {
-        $largestChange = array_keys($pullRequests)[0];
+        $largestChangeType = $changes->largestChange()->getType();
         $increments = $currentVersion->getSemanticIncrements();
 
-        if ($largestChange === 'bc') {
+        if ($largestChangeType === Change::TYPE_BC) {
             return [$increments['major'], $increments['minor'], $increments['patch']];
         }
 
-        if ($largestChange === 'M') {
+        if ($largestChangeType === Change::TYPE_MAJOR) {
             return [$increments['minor'], $increments['patch'], $increments['major']];
         }
 
@@ -175,75 +177,26 @@ class BuildRelease extends Command
     }
 
     /**
-     * Get the different categories of changes that can be used.
-     *
-     * @return array The types of changes that can be used.
-     */
-    private function _getChangeTypes()
-    {
-        return [
-            'bc' => 'Backwards Compatibility Breakers',
-            'M' => 'Major Features',
-            'm' => 'Minor Features',
-            'b' => 'Bug Fixes',
-            'd' => 'Developer Changes',
-            'x' => 'Remove Pull Request from Release Notes',
-        ];
-    }
-
-    /**
-     * Filters a list of commits down to just the pull requests and extracts the pull request info.
+     * Gets the change type for this change.
      *
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
-     * @param array $commits The commits.
-     * @return array The pull requests, separated by type, where each pull request has a PR `number` and a commit `message`.
+     * @param \Guywithnose\ReleaseNotes\Change\Change $change The change.
+     * @return string The type code of the change.
      */
-    private function _getPullRequests(OutputInterface $output, array $commits)
+    private function _selectTypeForChange(OutputInterface $output, Change $change)
     {
-        $types = $this->_getChangeTypes();
-        $results = array_combine(array_keys($types), array_fill(0, count($types), []));
         $dialog = $this->getHelperSet()->get('dialog');
         $formatter = $this->getHelperSet()->get('formatter');
 
-        foreach ($commits as $commit) {
-            if (
-                count($commit['parents']) === 2 &&
-                preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)
-            ) {
-                $lines = array_merge(["Pull Request #{$matches[1]}", ''], explode("\n", $matches[2]));
-                $formattedNotes = $formatter->formatBlock($lines, 'info', true);
+        $formattedNotes = $formatter->formatBlock(explode("\n", $change->displayFull()), 'info', true);
+        $defaultSection = "<info>(default: {$change->getType()} \"{$change->displayType()}\")</info>";
 
-                $type = $dialog->select(
-                    $output,
-                    "{$formattedNotes}\n<question>What type of change is this PR?</question> <info>(default: m \"{$types['m']}\")</info> ",
-                    $types,
-                    'm'
-                );
-
-                if ($type !== 'x') {
-                    $results[$type][] = ['number' => $matches[1], 'message' => $matches[2]];
-                }
-            }
-        }
-
-        return array_filter($results);
-    }
-
-    /**
-     * Formats the pull requests (as returned by _getPullRequests) into the release notes.
-     *
-     * @param array $pullRequests The pull requests.
-     * @return string The pull request formatted for the release notes.
-     */
-    private function _getReleaseNotes(array $pullRequests)
-    {
-        $types = $this->_getChangeTypes();
-        $sections = [];
-        foreach ($pullRequests as $type => $pulls) {
-            $sections[] = "## {$types[$type]}\n" . implode("\n", array_map([$this, '_formatPullRequest'], $pulls));
-        }
-
-        return implode("\n\n", $sections);
+        return $dialog->select(
+            $output,
+            "{$formattedNotes}\n<question>What type of change is this PR?</question> {$defaultSection} ",
+            $change::types(),
+            $change->getType()
+        );
     }
 
     /**
@@ -273,17 +226,6 @@ class BuildRelease extends Command
         unlink($releaseNotesFile);
 
         return $releaseNotes;
-    }
-
-    /**
-     * Formats a pull request (as returned by _getPullRequests) into a bulleted item for the release notes.
-     *
-     * @param array $pullRequest The pull request.
-     * @return string The pull request formatted for the release notes.
-     */
-    private function _formatPullRequest(array $pullRequest)
-    {
-        return "* {$pullRequest['message']}&nbsp;<sup>[PR&nbsp;#{$pullRequest['number']}]</sup>";
     }
 
     /**
