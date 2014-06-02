@@ -6,6 +6,7 @@ use Guywithnose\ReleaseNotes\Change\Change;
 use Guywithnose\ReleaseNotes\Change\ChangeFactory;
 use Guywithnose\ReleaseNotes\Change\ChangeList;
 use Guywithnose\ReleaseNotes\Change\ChangeListFactory;
+use Guywithnose\ReleaseNotes\Prompt\PromptFactory;
 use Nubs\RandomNameGenerator\Vgng;
 use Nubs\Sensible\Editor;
 use Symfony\Component\Console\Command\Command;
@@ -48,18 +49,19 @@ class BuildRelease extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $output->getFormatter()->setStyle('boldquestion', new OutputFormatterStyle('red', 'cyan', ['bold']));
+        $promptFactory = new PromptFactory($output, $this->getHelperSet()->get('dialog'), $this->getHelperSet()->get('formatter'));
 
         $owner = $input->getArgument('repo-owner');
         $repo = $input->getArgument('repo-name');
         $targetBranch = $input->getOption('target-branch');
 
-        $client = GithubClient::createWithToken($this->_getToken($input, $output), $owner, $repo);
+        $client = GithubClient::createWithToken($this->_getToken($input, $promptFactory), $owner, $repo);
 
-        $tagName = $this->_getBaseTagName($input, $output, $client, $targetBranch);
+        $tagName = $this->_getBaseTagName($input, $promptFactory, $client, $targetBranch);
         $currentVersion = Version::createFromString($tagName);;
 
-        $selectTypeForChange = function(Change $change) use($output) {
-            return $this->_selectTypeForChange($output, $change);
+        $selectTypeForChange = function(Change $change) use($promptFactory) {
+            return $this->_selectTypeForChange($promptFactory, $change);
         };
 
         $changeListFactory = new ChangeListFactory(new ChangeFactory($selectTypeForChange));
@@ -70,56 +72,52 @@ class BuildRelease extends Command
         }
 
         $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $changes);
-        $newVersion = $this->_getVersion($input, $output, $currentVersion, $suggestedVersions);
-        $releaseName = $this->_getReleaseName($input, $output);
+        $newVersion = $this->_getVersion($input, $promptFactory, $currentVersion, $suggestedVersions);
+        $releaseName = $this->_getReleaseName($input, $promptFactory);
         $releaseNotes = $this->_amendReleaseNotes($input, new Editor(), new ProcessBuilder(), $changes->display());
 
         $release = $this->_buildRelease($newVersion, $releaseName, $releaseNotes, $targetBranch);
-        $this->_submitRelease($output, $client, $release);
+        $this->_submitRelease($promptFactory, $client, $release);
     }
 
     /**
      * Gets an access token from the user, caching via the configured cache file.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
-     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @return string The github access token.
      */
-    private function _getToken(InputInterface $input, OutputInterface $output)
+    private function _getToken(InputInterface $input, PromptFactory $promptFactory)
     {
         $token = $input->getOption('access-token');
         if ($token) {
             return $token;
         }
 
-        $askForToken = function() use($output) {
-            return $this->getHelperSet()->get('dialog')->ask($output, '<question>Please enter a github access token</question>: ');
-        };
-
         $cache = new Cache($input->getOption('cache-dir'));
-        return $cache->getOrCreate($input->getOption('token-file'), [], $askForToken);
+
+        return $cache->getOrCreate($input->getOption('token-file'), [], $promptFactory->create('Please enter a github access token'));
     }
 
     /**
      * Gets the tag this release is based off of.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
-     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
      * @param string $releaseBranch The branch to find releases on, or null to find tag from any branch.
      * @return string The github access token.
      */
-    private function _getBaseTagName(InputInterface $input, OutputInterface $output, GithubClient $client, $releaseBranch)
+    private function _getBaseTagName(InputInterface $input, PromptFactory $promptFactory, GithubClient $client, $releaseBranch)
     {
         $tag = $input->getOption('previous-tag-name');
         if ($tag) {
             return $tag;
         }
 
-        $dialog = $this->getHelperSet()->get('dialog');
-        $latestTag = $client->getLatestReleaseTagName($releaseBranch);
+        $prompt = $promptFactory->create('Please enter the base tag', $client->getLatestReleaseTagName($releaseBranch));
 
-        return $dialog->ask($output, "<question>Please enter the base tag</question> <info>(default: {$latestTag})</info>: ", $latestTag);
+        return $prompt();
     }
 
     /**
@@ -153,50 +151,35 @@ class BuildRelease extends Command
      * The user may specify an exact version with the given auto-complete versions being given as suggestions.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
-     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @param \Guywithnose\ReleaseNotes\Version $currentVersion The current version.
      * @param array $suggestedVersions The auto-complete versions for user suggestions.
      * @return \Guywithnose\ReleaseNotes\Version The new version.
      */
-    private function _getVersion(InputInterface $input, OutputInterface $output, Version $currentVersion, array $suggestedVersions)
+    private function _getVersion(InputInterface $input, PromptFactory $promptFactory, Version $currentVersion, array $suggestedVersions)
     {
         $version = $input->getOption('release-version');
         if ($version) {
             return Version::createFromString($version);
         }
 
-        $dialog = $this->getHelperSet()->get('dialog');
-        $version = $dialog->ask(
-            $output,
-            "<question>Version Number</question> <info>(current: {$currentVersion}) (default: {$suggestedVersions[0]})</info>: ",
-            $suggestedVersions[0],
-            $suggestedVersions
-        );
+        $prompt = $promptFactory->create("Version Number (current: {$currentVersion})", $suggestedVersions[0], $suggestedVersions, null, false);
 
-        return Version::createFromString($version);
+        return Version::createFromString($prompt());
     }
 
     /**
      * Gets the change type for this change.
      *
-     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @param \Guywithnose\ReleaseNotes\Change\Change $change The change.
      * @return string The type code of the change.
      */
-    private function _selectTypeForChange(OutputInterface $output, Change $change)
+    private function _selectTypeForChange(PromptFactory $promptFactory, Change $change)
     {
-        $dialog = $this->getHelperSet()->get('dialog');
-        $formatter = $this->getHelperSet()->get('formatter');
+        $prompt = $promptFactory->create('What type of change is this PR?', $change->getType(), $change::types(), $change->displayFull());
 
-        $formattedNotes = $formatter->formatBlock(explode("\n", $change->displayFull()), 'info', true);
-        $defaultSection = "<info>(default: {$change->getType()} \"{$change->displayType()}\")</info>";
-
-        return $dialog->select(
-            $output,
-            "{$formattedNotes}\n<question>What type of change is this PR?</question> {$defaultSection} ",
-            $change::types(),
-            $change->getType()
-        );
+        return $prompt();
     }
 
     /**
@@ -232,45 +215,40 @@ class BuildRelease extends Command
      * Gets a name for the release.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
-     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @return string The name for the release.
      */
-    private function _getReleaseName(InputInterface $input, OutputInterface $output)
+    private function _getReleaseName(InputInterface $input, PromptFactory $promptFactory)
     {
         $releaseName = $input->getOption('release-name');
         if ($releaseName) {
             return $releaseName;
         }
 
-        $dialog = $this->getHelperSet()->get('dialog');
-        if ($dialog->askConfirmation($output, '<question>Use a random release name?</question> <info>(default: yes)</info> ', true)) {
-            return $this->_selectRandomReleaseName($output);
+        $prompt = $promptFactory->create('Use a random release name?', true);
+        if ($prompt()) {
+            return $this->_selectRandomReleaseName($promptFactory);
         }
 
-        return $dialog->ask($output, '<question>Release Name</question>: ');
+        $prompt = $promptFactory->create('Release Name');
+        return $prompt();
     }
 
     /**
      * Continually ask the user if a random release name should be used until they approve one.
      *
-     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @return string The name for the release.
      */
-    private function _selectRandomReleaseName(OutputInterface $output)
+    private function _selectRandomReleaseName(PromptFactory $promptFactory)
     {
-        $dialog = $this->getHelperSet()->get('dialog');
         $releaseName = null;
-
         $randomNameGenerator = new Vgng();
         do {
             $releaseName = $randomNameGenerator->getName();
 
-            $useRelease = $dialog->askConfirmation(
-                $output,
-                "<question>Use release name '<boldquestion>{$releaseName}</boldquestion>'?</question> <info>(default: yes)</info> ",
-                true
-            );
-        } while (!$useRelease);
+            $prompt = $promptFactory->create("Use release name '<boldquestion>{$releaseName}</boldquestion>'?", true);
+        } while (!$prompt());
 
         return $releaseName;
     }
@@ -299,19 +277,15 @@ class BuildRelease extends Command
     /**
      * Submits the given release to github.
      *
-     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
      * @param array $release The release information (@see $this->_buildRelease()).
      * @return void
      */
-    private function _submitRelease(OutputInterface $output, GithubClient $client, array $release)
+    private function _submitRelease(PromptFactory $promptFactory, GithubClient $client, array $release)
     {
-        $dialog = $this->getHelperSet()->get('dialog');
-        $formatter = $this->getHelperSet()->get('formatter');
-        $lines = array_merge([$release['name'], ''], explode("\n", $release['body']));
-        $formattedNotes = $formatter->formatBlock($lines, 'info', true);
-
-        if ($dialog->askConfirmation($output, "{$formattedNotes}\n<question>Continue?</question> <info>(default: yes)</info> ", true)) {
+        $prompt = $promptFactory->create('Continue?', true, [], "{$release['name']}\n\n{$release['body']}");
+        if ($prompt()) {
             $client->createRelease($release);
         }
     }
