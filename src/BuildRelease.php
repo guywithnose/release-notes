@@ -36,7 +36,8 @@ class BuildRelease extends Command
             ->addOption('release-version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')
             ->addOption('access-token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
             ->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
-            ->addOption('token-file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token');
+            ->addOption('token-file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token')
+            ->addOption('github-api', null, InputOption::VALUE_REQUIRED, 'The base url to the GitHub API');
     }
 
     /**
@@ -55,7 +56,7 @@ class BuildRelease extends Command
         $repo = $input->getArgument('repo-name');
         $targetBranch = $input->getOption('target-branch');
 
-        $client = GithubClient::createWithToken($this->_getToken($input, $promptFactory), $owner, $repo);
+        $client = GithubClient::createWithToken($this->_getToken($input, $promptFactory), $owner, $repo, $input->getOption('github-api'));
 
         $tagName = $this->_getBaseTagName($input, $promptFactory, $client, $targetBranch);
         $currentVersion = Version::createFromString($tagName);;
