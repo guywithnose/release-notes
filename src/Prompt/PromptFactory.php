@@ -31,7 +31,7 @@ class PromptFactory
     }
 
     /**
-     * Create the change from a github API commit representation.
+     * Create the prompt.
      *
      * @param string $question The question to ask.
      * @param mixed $default The default answer to the prompt.
@@ -43,5 +43,22 @@ class PromptFactory
     public function create($question, $default = null, array $choices = [], $preamble = '', $choicesOnly = true)
     {
         return new Prompt($this->_output, $this->_dialog, $this->_formatter, $question, $default, $choices, $preamble, $choicesOnly);
+    }
+
+    /**
+     * Create and immediately invoke the prompt returning the result.
+     *
+     * @param string $question The question to ask.
+     * @param mixed $default The default answer to the prompt.
+     * @param array $choices The chocies/suggestions for the prompt.
+     * @param string $preamble A preamble to display before asking the question.
+     * @param boolean $choicesOnly True if the choices are the only available answers, false otherwise.
+     * @return mixed The response from the prompt.
+     */
+    public function invoke($question, $default = null, array $choices = [], $preamble = '', $choicesOnly = true)
+    {
+        $prompt = $this->create($question, $default, $choices, $preamble, $choicesOnly);
+
+        return $prompt();
     }
 }

@@ -116,9 +116,7 @@ class BuildRelease extends Command
             return $tag;
         }
 
-        $prompt = $promptFactory->create('Please enter the base tag', $client->getLatestReleaseTagName($releaseBranch));
-
-        return $prompt();
+        return $promptFactory->invoke('Please enter the base tag', $client->getLatestReleaseTagName($releaseBranch));
     }
 
     /**
@@ -164,9 +162,9 @@ class BuildRelease extends Command
             return Version::createFromString($version);
         }
 
-        $prompt = $promptFactory->create("Version Number (current: {$currentVersion})", $suggestedVersions[0], $suggestedVersions, null, false);
-
-        return Version::createFromString($prompt());
+        return Version::createFromString(
+            $promptFactory->invoke("Version Number (current: {$currentVersion})", $suggestedVersions[0], $suggestedVersions, null, false)
+        );
     }
 
     /**
@@ -178,9 +176,7 @@ class BuildRelease extends Command
      */
     private function _selectTypeForChange(PromptFactory $promptFactory, Change $change)
     {
-        $prompt = $promptFactory->create('What type of change is this PR?', $change->getType(), $change::types(), $change->displayFull());
-
-        return $prompt();
+        return $promptFactory->invoke('What type of change is this PR?', $change->getType(), $change::types(), $change->displayFull());
     }
 
     /**
@@ -226,13 +222,11 @@ class BuildRelease extends Command
             return $releaseName;
         }
 
-        $prompt = $promptFactory->create('Use a random release name?', true);
-        if ($prompt()) {
+        if ($promptFactory->invoke('Use a random release name?', true)) {
             return $this->_selectRandomReleaseName($promptFactory);
         }
 
-        $prompt = $promptFactory->create('Release Name');
-        return $prompt();
+        return $promptFactory->invoke('Release Name');
     }
 
     /**
@@ -247,9 +241,7 @@ class BuildRelease extends Command
         $randomNameGenerator = new Vgng();
         do {
             $releaseName = $randomNameGenerator->getName();
-
-            $prompt = $promptFactory->create("Use release name '<boldquestion>{$releaseName}</boldquestion>'?", true);
-        } while (!$prompt());
+        } while (!$promptFactory->invoke("Use release name '<boldquestion>{$releaseName}</boldquestion>'?", true));
 
         return $releaseName;
     }
@@ -257,7 +249,7 @@ class BuildRelease extends Command
     /**
      * Builds the full release information to send to github.
      *
-     * @param \Guywithnose\Release\Version  $version The version of the release.
+     * @param \Guywithnose\Release\Version $version The version of the release.
      * @param string $releaseName The name of the release.
      * @param string $releaseNotes The formatted release notes.
      * @param string $targetCommitish The target commit/branch/etc. to tag.
@@ -285,8 +277,7 @@ class BuildRelease extends Command
      */
     private function _submitRelease(PromptFactory $promptFactory, GithubClient $client, array $release)
     {
-        $prompt = $promptFactory->create('Continue?', true, [], "{$release['name']}\n\n{$release['body']}");
-        if ($prompt()) {
+        if ($promptFactory->invoke('Continue?', true, [], "{$release['name']}\n\n{$release['body']}")) {
             $client->createRelease($release);
         }
     }
