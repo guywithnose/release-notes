@@ -3,7 +3,7 @@
         "This file locks the dependencies of your project to a known state",
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
     ],
-    "hash": "7c66dc1e29c37cd42de19acfacef8629",
+    "hash": "895b6478419fe8ffe25ebfbdbd9faee8",
     "packages": [
         {
             "name": "gregwar/cache",
@@ -301,16 +301,16 @@
         },
         {
             "name": "nubs/sensible",
-            "version": "v0.1.0",
+            "version": "v0.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nubs/sensible.git",
-                "reference": "274f4ccfb021123eb00b06b61ba518ba89c34749"
+                "reference": "e5596060886485795b175f06e9afa751c1ebfabf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nubs/sensible/zipball/274f4ccfb021123eb00b06b61ba518ba89c34749",
-                "reference": "274f4ccfb021123eb00b06b61ba518ba89c34749",
+                "url": "https://api.github.com/repos/nubs/sensible/zipball/e5596060886485795b175f06e9afa751c1ebfabf",
+                "reference": "e5596060886485795b175f06e9afa751c1ebfabf",
                 "shasum": ""
             },
             "require": {
@@ -320,7 +320,8 @@
                 "phpunit/phpunit": "~4.0"
             },
             "suggest": {
-                "brianium/habitat": "For better access to environment variables (e.g., for mocking)."
+                "brianium/habitat": "For better access to environment variables (e.g., for mocking).",
+                "symfony/process": "For executing the commands rather than just locating them."
             },
             "type": "library",
             "autoload": {
@@ -348,7 +349,7 @@
                 "sensible",
                 "user"
             ],
-            "time": "2014-05-28 23:13:37"
+            "time": "2014-06-03 11:39:39"
         },
         {
             "name": "symfony/console",

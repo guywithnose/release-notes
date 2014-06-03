@@ -22,7 +22,7 @@
         "symfony/console": "~2.4",
         "nubs/random-name-generator": "~0.1.0",
         "symfony/process": "~2.4",
-        "nubs/sensible": "~0.1.0"
+        "nubs/sensible": "~0.2.0"
     },
     "bin": ["bin/buildRelease"],
     "autoload": {

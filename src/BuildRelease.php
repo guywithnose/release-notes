@@ -190,22 +190,7 @@ class BuildRelease extends Command
      */
     private function _amendReleaseNotes(InputInterface $input, Editor $editor, ProcessBuilder $processBuilder, $releaseNotes)
     {
-        if (!$input->isInteractive()) {
-            return $releaseNotes;
-        }
-
-        $releaseNotesFile = tempnam(sys_get_temp_dir(), 'buildRelease');
-        file_put_contents($releaseNotesFile, $releaseNotes);
-
-        $proc = $processBuilder->setPrefix($editor->get())->setArguments([$releaseNotesFile])->getProcess();
-        $proc->setTty(true)->run();
-        if ($proc->isSuccessful()) {
-            $releaseNotes = file_get_contents($releaseNotesFile);
-        }
-
-        unlink($releaseNotesFile);
-
-        return $releaseNotes;
+        return $input->isInteractive() ? $editor->editData($processBuilder, $releaseNotes) : $releaseNotes;
     }
 
     /**
