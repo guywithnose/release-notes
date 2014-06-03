@@ -257,7 +257,7 @@ class BuildRelease extends Command
     /**
      * Builds the full release information to send to github.
      *
-     * @param \Guywithnose\Release\Version  $version The version of the release.
+     * @param \Guywithnose\Release\Version $version The version of the release.
      * @param string $releaseName The name of the release.
      * @param string $releaseNotes The formatted release notes.
      * @param string $targetCommitish The target commit/branch/etc. to tag.
