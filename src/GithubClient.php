@@ -35,11 +35,17 @@ class GithubClient
      * @param string $token The API token to authenticate with.
      * @param string $owner The owner name of the github repository.
      * @param string $repo The name of the github repository.
+     * @param string $apiUrl The base url to the github API if different from the main github site (i.e., GitHub Enterprise).
      * @return self The github client wrapper, authenticated against the API.
      */
-    public static function createWithToken($token, $owner, $repo)
+    public static function createWithToken($token, $owner, $repo, $apiUrl = null)
     {
         $client = new Client();
+
+        if ($apiUrl !== null) {
+            $client->setOption('base_url', $apiUrl);
+        }
+
         $client->authenticate($token, null, Client::AUTH_HTTP_TOKEN);
 
         return new static($client, $owner, $repo);
