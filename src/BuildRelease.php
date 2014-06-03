@@ -184,7 +184,7 @@ class BuildRelease extends Command
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Nubs\Sensible\Editor $editor The editor loader for allowing the user to customize the release notes.
-     * @param \Symfony\Component\Process\ProcessBuilder $builder The process builder for loading the editor.
+     * @param \Symfony\Component\Process\ProcessBuilder $processBuilder The process builder for loading the editor.
      * @param string $releaseNotes The release notes to amend.
      * @return string The amended release notes.
      */
