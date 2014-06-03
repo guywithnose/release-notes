@@ -184,28 +184,13 @@ class BuildRelease extends Command
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Nubs\Sensible\Editor $editor The editor loader for allowing the user to customize the release notes.
-     * @param \Symfony\Component\Process\ProcessBuilder $builder The process builder for loading the editor.
+     * @param \Symfony\Component\Process\ProcessBuilder $processBuilder The process builder for loading the editor.
      * @param string $releaseNotes The release notes to amend.
      * @return string The amended release notes.
      */
     private function _amendReleaseNotes(InputInterface $input, Editor $editor, ProcessBuilder $processBuilder, $releaseNotes)
     {
-        if (!$input->isInteractive()) {
-            return $releaseNotes;
-        }
-
-        $releaseNotesFile = tempnam(sys_get_temp_dir(), 'buildRelease');
-        file_put_contents($releaseNotesFile, $releaseNotes);
-
-        $proc = $processBuilder->setPrefix($editor->get())->setArguments([$releaseNotesFile])->getProcess();
-        $proc->setTty(true)->run();
-        if ($proc->isSuccessful()) {
-            $releaseNotes = file_get_contents($releaseNotesFile);
-        }
-
-        unlink($releaseNotesFile);
-
-        return $releaseNotes;
+        return $input->isInteractive() ? $editor->editData($processBuilder, $releaseNotes) : $releaseNotes;
     }
 
     /**
