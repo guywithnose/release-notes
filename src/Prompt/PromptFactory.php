@@ -31,7 +31,7 @@ class PromptFactory
     }
 
     /**
-     * Create the change from a github API commit representation.
+     * Create the prompt.
      *
      * @param string $question The question to ask.
      * @param mixed $default The default answer to the prompt.
