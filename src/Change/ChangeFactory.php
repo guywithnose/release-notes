@@ -29,11 +29,15 @@ class ChangeFactory
     {
         $typeSelector = $this->_typeSelector;
 
-        if (
-            count($commit['parents']) === 2 &&
-            preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)
-        ) {
-            $change = new PullRequest((int)$matches[1], $matches[2]);
+        if (count($commit['parents']) > 1) {
+            $change = null;
+            if (preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)) {
+                $change = new PullRequest((int)$matches[1], $matches[2]);
+            } elseif (preg_match('/Merge branch \'([^\']*)\'[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)) {
+                $change = new Merge($matches[1], $matches[2]);
+            } else {
+                $change = new Change($commit['commit']['message']);
+            }
 
             $type = $typeSelector($change);
             if ($type === Change::TYPE_IGNORE) {
