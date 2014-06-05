@@ -1,8 +1,6 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Change;
 
-use Guywithnose\ReleaseNotes\GithubClient;
-
 class ChangeListFactory
 {
     /** @type array The change factory. */
@@ -16,24 +14,6 @@ class ChangeListFactory
     public function __construct(ChangeFactory $changeFactory)
     {
         $this->_changeFactory = $changeFactory;
-    }
-
-    /**
-     * Fetch the commits from github between the two commits/tags/branches/etc. and create a changelist from the result.
-     *
-     * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
-     * @param string|null $startCommitish The beginning commit - excluded from results.  If this is null, all ancestors of $endCommitish will be
-     *     returned.
-     * @param string $endCommitish The end commit - included in results.
-     * @return \Guywithnose\ReleaseNotes\ChangeList The list of changes in the commit range.
-     */
-    public function createFromGithubRange(GithubClient $client, $startCommitish, $endCommitish)
-    {
-        if ($startCommitish !== null) {
-            return self::createFromCommits($client->getCommitsSinceTag($startCommitish, $endCommitish));
-        }
-
-        return self::createFromCommits($client->getCommitsOnBranch($endCommitish));
     }
 
     /**

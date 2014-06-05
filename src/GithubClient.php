@@ -71,6 +71,23 @@ class GithubClient
     }
 
     /**
+     * Fetch the commits from github between the two commits/tags/branches/etc.
+     *
+     * @param string|null $startCommitish The beginning commit - excluded from results.  If this is null, all ancestors of $endCommitish will be
+     *     returned.
+     * @param string $endCommitish The end commit - included in results.
+     * @return array The list of changes in the commit range.
+     */
+    public function getCommitsInRange($startCommitish, $endCommitish)
+    {
+        if ($startCommitish !== null) {
+            return $this->getCommitsSinceTag($startCommitish, $endCommitish);
+        }
+
+        return $this->getCommitsOnBranch($endCommitish);
+    }
+
+    /**
      * Fetches the commits to the repo since the given tag.
      *
      * @param string $tagName The old tag.
