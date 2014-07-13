@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "0b0f6dc4a080c4bc7dce1d71194b0742",
+    "hash": "9f8477058484050cff0ec2bdaef46ccf",
     "packages": [
         {
             "name": "gregwar/cache",
@@ -353,6 +353,59 @@
                 "user"
             ],
             "time": "2014-07-07 00:08:17"
+        },
+        {
+            "name": "nubs/which",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nubs/which.git",
+                "reference": "888d271d3776b7d989698b5e045aa269db29c47e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nubs/which/zipball/888d271d3776b7d989698b5e045aa269db29c47e",
+                "reference": "888d271d3776b7d989698b5e045aa269db29c47e",
+                "shasum": ""
+            },
+            "require": {
+                "php": "~5.4"
+            },
+            "require-dev": {
+                "brianium/habitat": "~1.0",
+                "phpunit/phpunit": "~4.0",
+                "squizlabs/php_codesniffer": "~1.5"
+            },
+            "suggest": {
+                "brianium/habitat": "For better access to environment variables (e.g., for mocking)."
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Nubs\\Which\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Spencer Rinehart",
+                    "email": "anubis@overthemonkey.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A library for locating commands in a PATH.",
+            "keywords": [
+                "executable",
+                "linux",
+                "path",
+                "script",
+                "which",
+                "windows"
+            ],
+            "time": "2014-07-10 00:07:25"
         },
         {
             "name": "symfony/console",
