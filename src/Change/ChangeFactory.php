@@ -38,16 +38,18 @@ class ChangeFactory
             } else {
                 $change = new Change($commit['commit']['message']);
             }
-
-            $type = $typeSelector($change);
-            if ($type === Change::TYPE_IGNORE) {
-                return null;
-            }
-
-            $change->setType($type);
-
-            return $change;
+        } else {
+            $change = new Change($commit['commit']['message']);
         }
+
+        $type = $typeSelector($change);
+        if ($type === Change::TYPE_IGNORE) {
+            return null;
+        }
+
+        $change->setType($type);
+
+        return $change;
 
         return null;
     }
