@@ -66,8 +66,11 @@ class BuildRelease extends Command
             return $this->_selectTypeForChange($promptFactory, $change);
         };
 
+        $commitGraph = new GithubCommitGraph($client->getCommitsInRange($tagName, $targetBranch));
+        $leadingCommits = $commitGraph->firstParents();
+
         $changeListFactory = new ChangeListFactory(new ChangeFactory($selectTypeForChange));
-        $changes = $changeListFactory->createFromCommits($client->getCommitsInRange($tagName, $targetBranch));
+        $changes = $changeListFactory->createFromCommits($leadingCommits);
         if ($changes->isEmpty()) {
             $output->writeln('<error>There were no unreleased changes found!</error>');
             return 1;
