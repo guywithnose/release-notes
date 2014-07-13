@@ -1,27 +1,28 @@
 {
     "_readme": [
         "This file locks the dependencies of your project to a known state",
-        "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
+        "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "This file is @generated automatically"
     ],
-    "hash": "895b6478419fe8ffe25ebfbdbd9faee8",
+    "hash": "0b0f6dc4a080c4bc7dce1d71194b0742",
     "packages": [
         {
             "name": "gregwar/cache",
-            "version": "v1.0.8",
+            "version": "v1.0.9",
             "target-dir": "Gregwar/Cache",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Gregwar/Cache.git",
-                "reference": "bf8038cb4a00ba7c63642ead89153b5c11ab3a28"
+                "reference": "514b9b469082028d094e33e4a059c863c546b14e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Gregwar/Cache/zipball/bf8038cb4a00ba7c63642ead89153b5c11ab3a28",
-                "reference": "bf8038cb4a00ba7c63642ead89153b5c11ab3a28",
+                "url": "https://api.github.com/repos/Gregwar/Cache/zipball/514b9b469082028d094e33e4a059c863c546b14e",
+                "reference": "514b9b469082028d094e33e4a059c863c546b14e",
                 "shasum": ""
             },
             "require": {
-                "php": ">=5.4"
+                "php": ">=5.3"
             },
             "type": "library",
             "autoload": {
@@ -47,7 +48,7 @@
                 "file-system",
                 "system"
             ],
-            "time": "2014-05-06 12:01:18"
+            "time": "2014-07-05 17:42:36"
         },
         {
             "name": "guzzle/guzzle",
@@ -195,25 +196,25 @@
         },
         {
             "name": "knplabs/github-api",
-            "version": "1.2.2",
+            "version": "1.2.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/KnpLabs/php-github-api.git",
-                "reference": "d87f703eca5be4447ecbb689cfda3912fe56ffa1"
+                "reference": "6ee8ad85e4d4a82e8ab92ac76fd14671dbba5158"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/KnpLabs/php-github-api/zipball/d87f703eca5be4447ecbb689cfda3912fe56ffa1",
-                "reference": "d87f703eca5be4447ecbb689cfda3912fe56ffa1",
+                "url": "https://api.github.com/repos/KnpLabs/php-github-api/zipball/6ee8ad85e4d4a82e8ab92ac76fd14671dbba5158",
+                "reference": "6ee8ad85e4d4a82e8ab92ac76fd14671dbba5158",
                 "shasum": ""
             },
             "require": {
                 "ext-curl": "*",
-                "guzzle/guzzle": ">=3.7",
+                "guzzle/guzzle": "~3.7",
                 "php": ">=5.3.2"
             },
             "require-dev": {
-                "phpunit/phpunit": ">=3.7"
+                "phpunit/phpunit": "~4.0"
             },
             "suggest": {
                 "knplabs/gaufrette": "Needed for optional Gaufrette cache"
@@ -252,7 +253,7 @@
                 "gist",
                 "github"
             ],
-            "time": "2014-06-02 03:56:38"
+            "time": "2014-07-01 12:09:42"
         },
         {
             "name": "nubs/random-name-generator",
@@ -301,26 +302,28 @@
         },
         {
             "name": "nubs/sensible",
-            "version": "v0.2.0",
+            "version": "v0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nubs/sensible.git",
-                "reference": "e5596060886485795b175f06e9afa751c1ebfabf"
+                "reference": "ccded6a8f8f715bf766f521d91734f88f099e7c6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nubs/sensible/zipball/e5596060886485795b175f06e9afa751c1ebfabf",
-                "reference": "e5596060886485795b175f06e9afa751c1ebfabf",
+                "url": "https://api.github.com/repos/nubs/sensible/zipball/ccded6a8f8f715bf766f521d91734f88f099e7c6",
+                "reference": "ccded6a8f8f715bf766f521d91734f88f099e7c6",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.3.2"
             },
             "require-dev": {
-                "phpunit/phpunit": "~4.0"
+                "phpunit/phpunit": "~4.0",
+                "squizlabs/php_codesniffer": "~1.5"
             },
             "suggest": {
                 "brianium/habitat": "For better access to environment variables (e.g., for mocking).",
+                "nubs/which": "For locating commands in PATH rather than using absolute paths.",
                 "symfony/process": "For executing the commands rather than just locating them."
             },
             "type": "library",
@@ -349,21 +352,21 @@
                 "sensible",
                 "user"
             ],
-            "time": "2014-06-03 11:39:39"
+            "time": "2014-07-07 00:08:17"
         },
         {
             "name": "symfony/console",
-            "version": "v2.5.0",
+            "version": "v2.5.1",
             "target-dir": "Symfony/Component/Console",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/Console.git",
-                "reference": "ef4ca73b0b3a10cbac653d3ca482d0cdd4502b2c"
+                "reference": "2e3df33dd72a9cdef7e9745d930e29ff844fe055"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/Console/zipball/ef4ca73b0b3a10cbac653d3ca482d0cdd4502b2c",
-                "reference": "ef4ca73b0b3a10cbac653d3ca482d0cdd4502b2c",
+                "url": "https://api.github.com/repos/symfony/Console/zipball/2e3df33dd72a9cdef7e9745d930e29ff844fe055",
+                "reference": "2e3df33dd72a9cdef7e9745d930e29ff844fe055",
                 "shasum": ""
             },
             "require": {
@@ -406,21 +409,21 @@
             ],
             "description": "Symfony Console Component",
             "homepage": "http://symfony.com",
-            "time": "2014-05-22 08:54:24"
+            "time": "2014-07-08 12:21:33"
         },
         {
             "name": "symfony/event-dispatcher",
-            "version": "v2.5.0",
+            "version": "v2.5.1",
             "target-dir": "Symfony/Component/EventDispatcher",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/EventDispatcher.git",
-                "reference": "cb62ec8dd05893fc8e4f0e6e21e326e1fc731fe8"
+                "reference": "84533bf98da5486b9395a1d95e9184e04e14aad3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/EventDispatcher/zipball/cb62ec8dd05893fc8e4f0e6e21e326e1fc731fe8",
-                "reference": "cb62ec8dd05893fc8e4f0e6e21e326e1fc731fe8",
+                "url": "https://api.github.com/repos/symfony/EventDispatcher/zipball/84533bf98da5486b9395a1d95e9184e04e14aad3",
+                "reference": "84533bf98da5486b9395a1d95e9184e04e14aad3",
                 "shasum": ""
             },
             "require": {
@@ -465,21 +468,21 @@
             ],
             "description": "Symfony EventDispatcher Component",
             "homepage": "http://symfony.com",
-            "time": "2014-04-29 10:13:57"
+            "time": "2014-07-08 12:21:33"
         },
         {
             "name": "symfony/process",
-            "version": "v2.5.0",
+            "version": "v2.5.1",
             "target-dir": "Symfony/Component/Process",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/Process.git",
-                "reference": "5d7d78e23894544740219e006320678cfa4cd45b"
+                "reference": "d923d86617000711813572795e0f8b276739ecb0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/Process/zipball/5d7d78e23894544740219e006320678cfa4cd45b",
-                "reference": "5d7d78e23894544740219e006320678cfa4cd45b",
+                "url": "https://api.github.com/repos/symfony/Process/zipball/d923d86617000711813572795e0f8b276739ecb0",
+                "reference": "d923d86617000711813572795e0f8b276739ecb0",
                 "shasum": ""
             },
             "require": {
@@ -514,7 +517,7 @@
             ],
             "description": "Symfony Process Component",
             "homepage": "http://symfony.com",
-            "time": "2014-05-23 09:02:52"
+            "time": "2014-07-08 12:21:33"
         }
     ],
     "packages-dev": [
