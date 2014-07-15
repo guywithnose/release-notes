@@ -77,14 +77,13 @@ class BuildRelease extends Command
             return 1;
         }
 
-        $commandLocatorFactory = new WhichLocatorFactory();
-        $editorFactory = new EditorFactory($commandLocatorFactory->create());
-        $editor = $editorFactory->create();
-
         $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $changes);
         $newVersion = $this->_getVersion($input, $promptFactory, $currentVersion, $suggestedVersions);
         $releaseName = $this->_getReleaseName($input, $promptFactory);
 
+        $commandLocatorFactory = new WhichLocatorFactory();
+        $editorFactory = new EditorFactory($commandLocatorFactory->create());
+        $editor = $editorFactory->create();
         $releaseNotes = $this->_amendReleaseNotes($input, $editor, new ProcessBuilder(), $changes->display());
 
         $release = $this->_buildRelease($newVersion, $releaseName, $releaseNotes, $targetBranch);
