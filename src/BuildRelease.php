@@ -8,6 +8,7 @@ use Guywithnose\ReleaseNotes\Change\ChangeList;
 use Guywithnose\ReleaseNotes\Change\ChangeListFactory;
 use Guywithnose\ReleaseNotes\Prompt\PromptFactory;
 use Nubs\RandomNameGenerator\Vgng;
+use Nubs\Sensible\CommandFactory\EditorFactory;
 use Nubs\Sensible\Editor;
 use Nubs\Which\LocatorFactory\PlatformLocatorFactory as WhichLocatorFactory;
 use Symfony\Component\Console\Command\Command;
@@ -77,7 +78,8 @@ class BuildRelease extends Command
         }
 
         $commandLocatorFactory = new WhichLocatorFactory();
-        $editor = new Editor(['commandLocator' => $commandLocatorFactory->create()]);
+        $editorFactory = new EditorFactory($commandLocatorFactory->create());
+        $editor = $editorFactory->create();
 
         $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $changes);
         $newVersion = $this->_getVersion($input, $promptFactory, $currentVersion, $suggestedVersions);
