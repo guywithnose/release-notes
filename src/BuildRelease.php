@@ -106,7 +106,7 @@ class BuildRelease extends Command
 
         $cache = new Cache($input->getOption('cache-dir'));
 
-        return $cache->getOrCreate($input->getOption('token-file'), [], $promptFactory->create('Please enter a github access token'));
+        return trim($cache->getOrCreate($input->getOption('token-file'), [], $promptFactory->create('Please enter a github access token')));
     }
 
     /**
