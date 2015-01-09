@@ -5,9 +5,6 @@ use Fhaculty\Graph\Graph;
 
 class GithubCommitGraph
 {
-    /** @type array The commits pulled from github. */
-    private $_commits;
-
     /** @type \Fhaculty\Graph\Graph The commit graph by sha. */
     private $_graph;
 
@@ -18,8 +15,7 @@ class GithubCommitGraph
      */
     public function __construct(array $commits)
     {
-        $this->_commits = $this->_prepareCommits($commits);
-        $this->_graph = $this->_buildGraph();
+        $this->_graph = $this->_buildGraph($commits);
     }
 
     /**
@@ -32,8 +28,8 @@ class GithubCommitGraph
         $result = [];
 
         $current = $this->_baseCommitNode();
-        while (isset($this->_commits[$current->getId()])) {
-            $result[] = $this->_commits[$current->getId()];
+        while ($current->getAttribute('commit')) {
+            $result[] = $current->getAttribute('commit');
             $current = $current->getVerticesEdgeTo()->getVertexFirst();
         }
 
@@ -45,36 +41,22 @@ class GithubCommitGraph
      *
      * The graph represents the parent-child relationship.  Each node in the graph has the id of the commit hash.
      *
+     * @param array $commits The commits.
      * @return \Fhaculty\Graph\Graph The graph of commits.
      */
-    private function _buildGraph()
+    private function _buildGraph(array $commits)
     {
         $graph = new Graph();
 
-        foreach ($this->_commits as $sha => $commit) {
-            $vertex = $graph->createVertex($sha, true);
+        foreach ($commits as $commit) {
+            $vertex = $graph->createVertex($commit['sha'], true);
+            $vertex->setAttribute('commit', $commit);
             foreach ($commit['parents'] as $parent) {
                 $vertex->createEdgeTo($graph->createVertex($parent['sha'], true));
             }
         }
 
         return $graph;
-    }
-
-    /**
-     * Initializes a private commit datastructure in order to more easily look up commits by sha.
-     *
-     * @param array $commits The commits.
-     * @return array The commits with the sha's as the keys.
-     */
-    private function _prepareCommits(array $commits)
-    {
-        $result = [];
-        foreach ($commits as $commit) {
-            $result[$commit['sha']] = $commit;
-        }
-
-        return $result;
     }
 
     /**

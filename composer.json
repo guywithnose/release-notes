@@ -24,7 +24,7 @@
         "symfony/process": "~2.4",
         "nubs/sensible": "~0.4.0",
         "nubs/which": "~1.0",
-        "clue/graph": "~0.7.1"
+        "clue/graph": "~0.8.0"
     },
     "bin": ["bin/buildRelease"],
     "autoload": {
