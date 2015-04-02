@@ -61,7 +61,7 @@ class BuildRelease extends Command
         $client = GithubClient::createWithToken($this->_getToken($input, $promptFactory), $owner, $repo, $input->getOption('github-api'));
 
         $tagName = $this->_getBaseTagName($input, $promptFactory, $client, $targetBranch);
-        $currentVersion = Version::createFromString($tagName);;
+        $currentVersion = Version::createFromString($tagName);
 
         $selectTypeForChange = function(Change $change) use($promptFactory) {
             return $this->_selectTypeForChange($promptFactory, $change);
