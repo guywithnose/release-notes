@@ -141,6 +141,9 @@ class BuildRelease extends Command
     {
         $largestChangeType = $changes->largestChange()->getType();
         $increments = $currentVersion->getSemanticIncrements();
+        if (empty($increments)) {
+            return [];
+        }
 
         if ($largestChangeType === Change::TYPE_BC) {
             return [$increments['major'], $increments['minor'], $increments['patch']];
@@ -172,7 +175,13 @@ class BuildRelease extends Command
         }
 
         return Version::createFromString(
-            $promptFactory->invoke("Version Number (current: {$currentVersion})", $suggestedVersions[0], $suggestedVersions, null, false)
+            $promptFactory->invoke(
+                "Version Number (current: {$currentVersion})",
+                empty($suggestedVersions) ? null : $suggestedVersions[0],
+                $suggestedVersions,
+                null,
+                false
+            )
         );
     }
 
