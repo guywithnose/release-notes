@@ -37,6 +37,7 @@ class BuildRelease extends Command
             ->addOption('release-name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
             ->addOption('release-version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')
             ->addOption('access-token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
+            ->addOption('publish', 'p', InputOption::VALUE_NONE, 'Immediately publish the release (instead of leaving as draft)')
             ->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
             ->addOption('token-file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token')
             ->addOption('github-api', null, InputOption::VALUE_REQUIRED, 'The base url to the GitHub API');
@@ -57,6 +58,7 @@ class BuildRelease extends Command
         $owner = $input->getArgument('repo-owner');
         $repo = $input->getArgument('repo-name');
         $targetBranch = $input->getOption('target-branch');
+        $isDraft = !$input->getOption('publish');
 
         $client = GithubClient::createWithToken($this->_getToken($input, $promptFactory), $owner, $repo, $input->getOption('github-api'));
 
@@ -86,7 +88,7 @@ class BuildRelease extends Command
         $editor = $editorFactory->create();
         $releaseNotes = $this->_amendReleaseNotes($input, $editor, new ProcessBuilder(), $changes->display());
 
-        $release = $this->_buildRelease($newVersion, $releaseName, $releaseNotes, $targetBranch);
+        $release = $this->_buildRelease($newVersion, $releaseName, $releaseNotes, $targetBranch, $isDraft);
         $this->_submitRelease($promptFactory, $client, $release);
     }
 
@@ -256,16 +258,17 @@ class BuildRelease extends Command
      * @param string $releaseName The name of the release.
      * @param string $releaseNotes The formatted release notes.
      * @param string $targetCommitish The target commit/branch/etc. to tag.
+     * @param boolean $isDraft Whether the release is a draft or if it should be published immediately.
      * @return array The data to send to github.
      */
-    private function _buildRelease(Version $version, $releaseName, $releaseNotes, $targetCommitish = null)
+    private function _buildRelease(Version $version, $releaseName, $releaseNotes, $targetCommitish = null, $isDraft = true)
     {
         return [
             'tag_name' => $version->tagName(),
             'name' => "Version {$version}" . ($releaseName ? ": {$releaseName}" : ''),
             'body' => $releaseNotes,
             'prerelease' => $version->isPreRelease(),
-            'draft' => true,
+            'draft' => $isDraft,
             'target_commitish' => $targetCommitish,
         ];
     }
@@ -280,7 +283,8 @@ class BuildRelease extends Command
      */
     private function _submitRelease(PromptFactory $promptFactory, GithubClient $client, array $release)
     {
-        if ($promptFactory->invoke('Continue?', true, [], "{$release['name']}\n\n{$release['body']}")) {
+        $prompt = $release['draft'] ? 'Submit draft?' : 'Publish release?';
+        if ($promptFactory->invoke($prompt, true, [], "{$release['name']}\n\n{$release['body']}")) {
             $client->createRelease($release);
         }
     }
