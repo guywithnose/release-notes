@@ -30,7 +30,12 @@ class GithubCommitGraph
         $current = $this->_baseCommitNode();
         while ($current->getAttribute('commit')) {
             $result[] = $current->getAttribute('commit');
-            $current = $current->getVerticesEdgeTo()->getVertexFirst();
+            $parents = $current->getVerticesEdgeTo();
+            if ($parents->isEmpty()) {
+                break;
+            }
+
+            $current = $parents->getVertexFirst();
         }
 
         return $result;
