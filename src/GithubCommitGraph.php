@@ -28,7 +28,7 @@ class GithubCommitGraph
         $result = [];
 
         $current = $this->_baseCommitNode();
-        while ($current->getAttribute('commit')) {
+        while ($current !== null && $current->getAttribute('commit')) {
             $result[] = $current->getAttribute('commit');
             $parents = $current->getVerticesEdgeTo();
             if ($parents->isEmpty()) {
@@ -67,7 +67,7 @@ class GithubCommitGraph
     /**
      * Searches the graph for the base commit node.
      *
-     * @return \Fhaculty\Graph\Vertex The base commit node.
+     * @return \Fhaculty\Graph\Vertex|null The base commit node or null if there isn't exactly one.
      */
     private function _baseCommitNode()
     {
@@ -75,6 +75,8 @@ class GithubCommitGraph
             return $vertex->getEdgesIn()->isEmpty();
         };
 
-        return $this->_graph->getVertices()->getVertexMatch($noChildren);
+        $baseNodes = $this->_graph->getVertices()->getVerticesMatch($noChildren);
+
+        return $baseNodes->count() === 1 ? $baseNodes->getVertexFirst() : null;
     }
 }
