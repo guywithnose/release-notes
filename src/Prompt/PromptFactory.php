@@ -1,17 +1,21 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Prompt;
 
-use Symfony\Component\Console\Helper\DialogHelper;
+use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Helper\FormatterHelper;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class PromptFactory
 {
+    /** @type \Symfony\Component\Console\Input\InputInterface The command output. */
+    protected $_input;
+
     /** @type \Symfony\Component\Console\Output\OutputInterface The command output. */
     protected $_output;
 
-    /** @type \Symfony\Component\Console\Helper\DialogHelper The dialog helper. */
-    protected $_dialog;
+    /** @type \Symfony\Component\Console\Helper\QuestionHelper The question helper. */
+    protected $_questionHelper;
 
     /** @type \Symfony\Component\Console\Helper\FormatterHelper The formatter helper. */
     protected $_formatter;
@@ -19,14 +23,16 @@ class PromptFactory
     /**
      * Initialize the prompt factory.
      *
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
-     * @param \Symfony\Component\Console\Helper\DialogHelper $dialog The dialog helper.
+     * @param \Symfony\Component\Console\Helper\QuestionHelper $questionHelper The question helper.
      * @param \Symfony\Component\Console\Helper\FormatterHelper $formatter The formatter helper.
      */
-    public function __construct(OutputInterface $output, DialogHelper $dialog, FormatterHelper $formatter)
+    public function __construct(InputInterface $input, OutputInterface $output, QuestionHelper $questionHelper, FormatterHelper $formatter)
     {
+        $this->_input = $input;
         $this->_output = $output;
-        $this->_dialog = $dialog;
+        $this->_questionHelper = $questionHelper;
         $this->_formatter = $formatter;
     }
 
@@ -42,7 +48,17 @@ class PromptFactory
      */
     public function create($question, $default = null, array $choices = [], $preamble = '', $choicesOnly = true)
     {
-        return new Prompt($this->_output, $this->_dialog, $this->_formatter, $question, $default, $choices, $preamble, $choicesOnly);
+        return new Prompt(
+            $this->_input,
+            $this->_output,
+            $this->_questionHelper,
+            $this->_formatter,
+            $question,
+            $default,
+            $choices,
+            $preamble,
+            $choicesOnly
+        );
     }
 
     /**

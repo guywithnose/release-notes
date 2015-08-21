@@ -53,7 +53,7 @@ class BuildRelease extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $output->getFormatter()->setStyle('boldquestion', new OutputFormatterStyle('red', 'cyan', ['bold']));
-        $promptFactory = new PromptFactory($output, $this->getHelperSet()->get('dialog'), $this->getHelperSet()->get('formatter'));
+        $promptFactory = new PromptFactory($input, $output, $this->getHelperSet()->get('question'), $this->getHelperSet()->get('formatter'));
 
         $client = GithubClient::createWithToken(
             $this->_getToken($input, $promptFactory),
