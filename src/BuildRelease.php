@@ -57,10 +57,9 @@ class BuildRelease extends Command
 
         $owner = $input->getArgument('repo-owner');
         $repo = $input->getArgument('repo-name');
-        $targetBranch = $input->getOption('target-branch');
-        $isDraft = !$input->getOption('publish');
-
         $client = GithubClient::createWithToken($this->_getToken($input, $promptFactory), $owner, $repo, $input->getOption('github-api'));
+
+        $targetBranch = $input->getOption('target-branch');
 
         $tagName = $this->_getBaseTagName($input, $promptFactory, $client, $targetBranch);
         $currentVersion = Version::createFromString($tagName);
@@ -88,6 +87,7 @@ class BuildRelease extends Command
         $editor = $editorFactory->create();
         $releaseNotes = $this->_amendReleaseNotes($input, $editor, new ProcessBuilder(), $changes->display());
 
+        $isDraft = !$input->getOption('publish');
         $release = $this->_buildRelease($newVersion, $releaseName, $releaseNotes, $targetBranch, $isDraft);
         $this->_submitRelease($promptFactory, $client, $release);
     }
