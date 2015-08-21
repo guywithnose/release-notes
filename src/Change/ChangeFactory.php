@@ -14,9 +14,11 @@ class ChangeFactory
      *
      * @param callable $typeSelector The type selector function.
      */
-    public function __construct(callable $typeSelector)
+    public function __construct(callable $typeSelector = null)
     {
-        $this->_typeSelector = $typeSelector;
+        $this->_typeSelector = $typeSelector ?: function(Change $change) {
+            return $change->getType();
+        };
     }
 
     /**
