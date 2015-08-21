@@ -3,7 +3,7 @@ namespace Guywithnose\ReleaseNotes\Change;
 
 class Change
 {
-    const TYPE_BC = 'bc';
+    const TYPE_BC = 'B';
     const TYPE_MAJOR = 'M';
     const TYPE_MINOR = 'm';
     const TYPE_BUGFIX = 'b';

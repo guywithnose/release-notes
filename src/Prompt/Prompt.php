@@ -1,17 +1,24 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Prompt;
 
-use Symfony\Component\Console\Helper\DialogHelper;
 use Symfony\Component\Console\Helper\FormatterHelper;
+use Symfony\Component\Console\Helper\QuestionHelper;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ChoiceQuestion;
+use Symfony\Component\Console\Question\ConfirmationQuestion;
+use Symfony\Component\Console\Question\Question;
 
 class Prompt
 {
+    /** @type \Symfony\Component\Console\Input\InputInterface The command input. */
+    protected $_input;
+
     /** @type \Symfony\Component\Console\Output\OutputInterface The command output. */
     protected $_output;
 
-    /** @type \Symfony\Component\Console\Helper\DialogHelper The dialog helper. */
-    protected $_dialog;
+    /** @type \Symfony\Component\Console\Helper\QuestionHelper The question helper. */
+    protected $_questionHelper;
 
     /** @type \Symfony\Component\Console\Helper\FormatterHelper The formatter helper. */
     protected $_formatter;
@@ -34,8 +41,9 @@ class Prompt
     /**
      * Create the change from a github API commit representation.
      *
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
-     * @param \Symfony\Component\Console\Helper\DialogHelper $dialog The dialog helper.
+     * @param \Symfony\Component\Console\Helper\QuestionHelper $questionHelper The question helper.
      * @param \Symfony\Component\Console\Helper\FormatterHelper $formatter The formatter helper.
      * @param string $question The question to ask.
      * @param mixed $default The default answer to the prompt.
@@ -45,8 +53,9 @@ class Prompt
      * @return \Guywithnose\ReleaseNotes\Prompt The prompt object.
      */
     public function __construct(
+        InputInterface $input,
         OutputInterface $output,
-        DialogHelper $dialog,
+        QuestionHelper $questionHelper,
         FormatterHelper $formatter,
         $question,
         $default = null,
@@ -55,8 +64,9 @@ class Prompt
         $choicesOnly = true
     )
     {
+        $this->_input = $input;
         $this->_output = $output;
-        $this->_dialog = $dialog;
+        $this->_questionHelper = $questionHelper;
         $this->_formatter = $formatter;
         $this->_question = $question;
         $this->_default = $default;
@@ -66,32 +76,47 @@ class Prompt
     }
 
     /**
-     * Executes the dialog returning the result.
+     * Executes the question returning the result.
      *
-     * The dialog may be a select dialog, confirmation (yes/no), or textual prompt.
+     * The question may be a select, confirmation (yes/no), or textual prompt.
      *
      * @return string|bool The user's response.
      */
     public function __invoke()
     {
-        if ($this->_isSelect()) {
-            return $this->_dialog->select($this->_output, $this->_displayQuestion(), $this->_choices, $this->_default);
-        }
-
-        if ($this->_isConfirmation()) {
-            return $this->_dialog->askConfirmation($this->_output, $this->_displayQuestion(), $this->_default);
-        }
-
-        return $this->_dialog->ask($this->_output, $this->_displayQuestion(), $this->_default, $this->_choices);
+        return $this->_questionHelper->ask($this->_input, $this->_output, $this->_getQuestion());
     }
 
     /**
-     * Check if this dialog is a select dialog.
+     * Gets the question object that is to be asked.
+     *
+     * The question will either be a ChoiceQuestion, ConfirmationQuestion, or regular Question based on the configuration.
+     *
+     * @return \Symfony\Component\Console\Question\Question The question to be asked.
+     */
+    protected function _getQuestion()
+    {
+        if ($this->_isSelect()) {
+            return new ChoiceQuestion($this->_displayQuestion(), $this->_choices, $this->_default);
+        }
+
+        if ($this->_isConfirmation()) {
+            return new ConfirmationQuestion($this->_displayQuestion(), $this->_default);
+        }
+
+        $question = new Question($this->_displayQuestion(), $this->_default);
+        $question->setAutocompleterValues($this->_choices);
+
+        return $question;
+    }
+
+    /**
+     * Check if this question is a select prompt.
      *
      * When there are choices given (rather than freeform input or boolean), they can either be given via autocomplete suggestions (in case the
      * choices are only loose choices) or via a select element (for when the choices are the only allowed responses).
      *
-     * @return bool True if this should be a select dialog, false if not.
+     * @return bool True if this should be a select prompt, false if not.
      */
     protected function _isSelect()
     {
@@ -99,11 +124,11 @@ class Prompt
     }
 
     /**
-     * Check if this dialog is a confirmation dialog.
+     * Check if this question is a confirmation prompt.
      *
-     * If the default value is a boolean value, then we assume that the dialog is asking a yes/no question.
+     * If the default value is a boolean value, then we assume that the question is yes/no.
      *
-     * @return bool True if this should be a confirmation dialog, false if not.
+     * @return bool True if this should be a confirmation prompt, false if not.
      */
     protected function _isConfirmation()
     {
@@ -141,9 +166,9 @@ class Prompt
     /**
      * Formats the default value for display.
      *
-     * Select dialogs are special in that they need both key and value and the default should mention them both to be helpful.
+     * Select questions are special in that they need both key and value and the default should mention them both to be helpful.
      *
-     * Confirmation dialogs are special in that the boolean value needs to be converted to a "yes" or "no" string.
+     * Confirmation questions are special in that the boolean value needs to be converted to a "yes" or "no" string.
      *
      * @return string The formatted default value.
      */

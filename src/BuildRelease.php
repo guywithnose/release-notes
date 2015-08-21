@@ -53,14 +53,16 @@ class BuildRelease extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $output->getFormatter()->setStyle('boldquestion', new OutputFormatterStyle('red', 'cyan', ['bold']));
-        $promptFactory = new PromptFactory($output, $this->getHelperSet()->get('dialog'), $this->getHelperSet()->get('formatter'));
+        $promptFactory = new PromptFactory($input, $output, $this->getHelperSet()->get('question'), $this->getHelperSet()->get('formatter'));
 
-        $owner = $input->getArgument('repo-owner');
-        $repo = $input->getArgument('repo-name');
+        $client = GithubClient::createWithToken(
+            $this->_getToken($input, $promptFactory),
+            $input->getArgument('repo-owner'),
+            $input->getArgument('repo-name'),
+            $input->getOption('github-api')
+        );
+
         $targetBranch = $input->getOption('target-branch');
-        $isDraft = !$input->getOption('publish');
-
-        $client = GithubClient::createWithToken($this->_getToken($input, $promptFactory), $owner, $repo, $input->getOption('github-api'));
 
         $tagName = $this->_getBaseTagName($input, $promptFactory, $client, $targetBranch);
         $currentVersion = Version::createFromString($tagName);
@@ -88,6 +90,7 @@ class BuildRelease extends Command
         $editor = $editorFactory->create();
         $releaseNotes = $this->_amendReleaseNotes($input, $editor, new ProcessBuilder(), $changes->display());
 
+        $isDraft = !$input->getOption('publish');
         $release = $this->_buildRelease($newVersion, $releaseName, $releaseNotes, $targetBranch, $isDraft);
         $this->_submitRelease($promptFactory, $client, $release);
     }
