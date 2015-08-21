@@ -55,9 +55,12 @@ class BuildRelease extends Command
         $output->getFormatter()->setStyle('boldquestion', new OutputFormatterStyle('red', 'cyan', ['bold']));
         $promptFactory = new PromptFactory($output, $this->getHelperSet()->get('dialog'), $this->getHelperSet()->get('formatter'));
 
-        $owner = $input->getArgument('repo-owner');
-        $repo = $input->getArgument('repo-name');
-        $client = GithubClient::createWithToken($this->_getToken($input, $promptFactory), $owner, $repo, $input->getOption('github-api'));
+        $client = GithubClient::createWithToken(
+            $this->_getToken($input, $promptFactory),
+            $input->getArgument('repo-owner'),
+            $input->getArgument('repo-name'),
+            $input->getOption('github-api')
+        );
 
         $targetBranch = $input->getOption('target-branch');
 
