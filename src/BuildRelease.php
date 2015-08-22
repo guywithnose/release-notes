@@ -144,11 +144,13 @@ class BuildRelease extends Command
      */
     private function _getSuggestedNewVersions(Version $currentVersion, ChangeList $changes)
     {
-        $largestChangeType = $changes->largestChange()->getType();
         $increments = $currentVersion->getSemanticIncrements();
         if (empty($increments)) {
             return [];
         }
+
+        $largestChange = $changes->largestChange();
+        $largestChangeType = $largestChange ? $largestChange->getType() : Change::TYPE_MINOR;
 
         if ($largestChangeType === Change::TYPE_BC) {
             return [$increments['major'], $increments['minor'], $increments['patch']];
