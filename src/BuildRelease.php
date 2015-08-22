@@ -121,7 +121,7 @@ class BuildRelease extends Command
      * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
      * @param string $releaseBranch The branch to find releases on, or null to find tag from any branch.
-     * @return string The github access token.
+     * @return string The base tag name.
      */
     private function _getBaseTagName(InputInterface $input, PromptFactory $promptFactory, GithubClient $client, $releaseBranch)
     {
