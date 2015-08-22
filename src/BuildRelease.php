@@ -91,7 +91,7 @@ class BuildRelease extends Command
         $releaseNotes = $this->_amendReleaseNotes($input, $editor, new ProcessBuilder(), $changes->display());
 
         $isDraft = !$input->getOption('publish');
-        $release = $this->_buildRelease($newVersion, $releaseName, $releaseNotes, $targetBranch, $isDraft);
+        $release = new Release($changes, $currentVersion, $newVersion, $releaseName, $releaseNotes, $targetBranch, $isDraft);
         $this->_submitRelease($promptFactory, $client, $release);
     }
 
@@ -257,40 +257,18 @@ class BuildRelease extends Command
     }
 
     /**
-     * Builds the full release information to send to github.
-     *
-     * @param \Guywithnose\Release\Version $version The version of the release.
-     * @param string $releaseName The name of the release.
-     * @param string $releaseNotes The formatted release notes.
-     * @param string $targetCommitish The target commit/branch/etc. to tag.
-     * @param boolean $isDraft Whether the release is a draft or if it should be published immediately.
-     * @return array The data to send to github.
-     */
-    private function _buildRelease(Version $version, $releaseName, $releaseNotes, $targetCommitish = null, $isDraft = true)
-    {
-        return [
-            'tag_name' => $version->tagName(),
-            'name' => "Version {$version}" . ($releaseName ? ": {$releaseName}" : ''),
-            'body' => $releaseNotes,
-            'prerelease' => $version->isPreRelease(),
-            'draft' => $isDraft,
-            'target_commitish' => $targetCommitish,
-        ];
-    }
-
-    /**
      * Submits the given release to github.
      *
      * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
-     * @param array $release The release information (@see $this->_buildRelease()).
+     * @param \Guywithnose\ReleaseNotes\Release $release The release information.
      * @return void
      */
-    private function _submitRelease(PromptFactory $promptFactory, GithubClient $client, array $release)
+    private function _submitRelease(PromptFactory $promptFactory, GithubClient $client, Release $release)
     {
-        $prompt = $release['draft'] ? 'Submit draft?' : 'Publish release?';
-        if ($promptFactory->invoke($prompt, true, [], "{$release['name']}\n\n{$release['body']}")) {
-            $client->createRelease($release);
+        $prompt = $release->isDraft ? 'Submit draft?' : 'Publish release?';
+        if ($promptFactory->invoke($prompt, true, [], $release->previewFormat())) {
+            $client->createRelease($release->githubFormat());
         }
     }
 }
