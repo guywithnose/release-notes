@@ -65,7 +65,7 @@ class BuildRelease extends Command
         $targetBranch = $input->getOption('target-branch');
 
         $tagName = $this->_getBaseTagName($input, $promptFactory, $client, $targetBranch);
-        $currentVersion = Version::createFromString($tagName);
+        $currentVersion = new Version($tagName);
 
         $selectTypeForChange = function(Change $change) use($promptFactory) {
             return $this->_selectTypeForChange($promptFactory, $change);
@@ -178,10 +178,10 @@ class BuildRelease extends Command
     {
         $version = $input->getOption('release-version');
         if ($version) {
-            return Version::createFromString($version);
+            return new Version($version);
         }
 
-        return Version::createFromString(
+        return new Version(
             $promptFactory->invoke(
                 "Version Number (current: {$currentVersion})",
                 empty($suggestedVersions) ? null : $suggestedVersions[0],
