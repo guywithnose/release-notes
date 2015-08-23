@@ -52,7 +52,6 @@ class BuildRelease extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $output->getFormatter()->setStyle('boldquestion', new OutputFormatterStyle('red', 'cyan', ['bold']));
         $promptFactory = new PromptFactory($input, $output, $this->getHelperSet()->get('question'), $this->getHelperSet()->get('formatter'));
 
         $client = GithubClient::createWithToken(
@@ -63,36 +62,119 @@ class BuildRelease extends Command
         );
 
         $targetBranch = $input->getOption('target-branch');
+        $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
+        $release = $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
 
-        $tagName = $this->_getBaseTagName($input, $promptFactory, $client, $targetBranch);
-        $currentVersion = new Version($tagName);
+        $defaultChoice = $input->getOption('publish') ? 'p' : 'd';
+        $choices = [
+            'b' => 'Change Target Branch',
+            't' => 'Change Base Tag',
+            'c' => 'Categorize Changes',
+            'v' => 'Change Version',
+            'n' => 'Change Release Name',
+            'r' => 'Randomize Release Name',
+            'e' => 'Edit Release Notes',
+            'd' => 'Submit Draft Release',
+            'p' => 'Publish Release',
+            'q' => 'Cancel and Quit',
+        ];
 
-        $selectTypeForChange = function(Change $change) use($promptFactory) {
-            return $this->_selectTypeForChange($promptFactory, $change);
-        };
-
-        $commitGraph = new GithubCommitGraph($client->getCommitsInRange($tagName, $targetBranch));
-        $leadingCommits = $commitGraph->firstParents();
-
-        $changeListFactory = new ChangeListFactory(new ChangeFactory($selectTypeForChange));
-        $changes = $changeListFactory->createFromCommits($leadingCommits);
-        if ($changes->isEmpty()) {
-            $output->writeln('<error>There were no unreleased changes found!</error>');
-            return 1;
+        $done = false;
+        while (!$done) {
+            $choice = $promptFactory->invoke('What would you like to do?', $defaultChoice, $choices, $release->previewFormat());
+            switch ($choice) {
+                case 'b':
+                    $targetBranch = $promptFactory->invoke('Please enter the target branch');
+                    $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
+                    $release = $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+                    break;
+                case 't':
+                    $targetBranch = $release->targetCommitish;
+                    $baseTagName = $promptFactory->invoke('Please enter the base tag', $release->currentVersion);
+                    $release = $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+                    break;
+                case 'c':
+                    $selectTypeForChange = function(Change $change) use($promptFactory) {
+                        return $promptFactory->invoke(
+                            'What type of change is this PR?',
+                            $change->getType(),
+                            $change::types(),
+                            $change->displayFull()
+                        );
+                    };
+                    $release->changes = $this->_getChangesInRange(
+                        $client,
+                        $release->currentVersion->unprocessed(),
+                        $release->targetCommitish,
+                        $selectTypeForChange
+                    );
+                    $release->version = $this->_getVersion($input, $release->currentVersion, $release->changes);
+                    $release->notes = $release->changes->display();
+                    break;
+                case 'v':
+                    $suggestedVersions = $this->_getSuggestedNewVersions($release->currentVersion, $release->changes);
+                    $currentVersion = $release->currentVersion;
+                    $defaultVersion = $release->version;
+                    $release->version = new Version(
+                        $promptFactory->invoke("Version Number (current: {$currentVersion})", $defaultVersion, $suggestedVersions, null, false)
+                    );
+                    break;
+                case 'n':
+                    $release->name = $promptFactory->invoke('Release Name', $release->name);
+                    break;
+                case 'r':
+                    $randomNameGenerator = new Vgng();
+                    $release->name = $randomNameGenerator->getName();
+                    break;
+                case 'e':
+                    $release->notes = $this->_amendReleaseNotes($input, $release->notes);
+                    break;
+                case 'd':
+                    $release->isDraft = true;
+                    $done = true;
+                    break;
+                case 'p':
+                    $release->isDraft = false;
+                    $done = true;
+                    break;
+                case 'q':
+                    return;
+            }
         }
 
-        $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $changes);
-        $newVersion = $this->_getVersion($input, $promptFactory, $currentVersion, $suggestedVersions);
-        $releaseName = $this->_getReleaseName($input, $promptFactory);
-
-        $commandLocatorFactory = new WhichLocatorFactory();
-        $editorFactory = new EditorFactory($commandLocatorFactory->create());
-        $editor = $editorFactory->create();
-        $releaseNotes = $this->_amendReleaseNotes($input, $editor, new ProcessBuilder(), $changes->display());
-
-        $isDraft = !$input->getOption('publish');
-        $release = new Release($changes, $currentVersion, $newVersion, $releaseName, $releaseNotes, $targetBranch, $isDraft);
         $this->_submitRelease($promptFactory, $client, $release);
+    }
+
+    /**
+     * Builds the release without prompts based on command options and default values.
+     *
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
+     * @param string $targetBranch The target branch to build a release for.
+     * @param string $baseTagName The tag name of the previous release on the target branch.
+     * @return \Guywithnose\ReleaseNotes\Release The release object.
+     */
+    private function _buildRelease(InputInterface $input, GithubClient $client, $targetBranch, $baseTagName)
+    {
+        $currentVersion = new Version($baseTagName);
+
+        $changes = $this->_getChangesInRange($client, $baseTagName, $targetBranch);
+        $newVersion = $this->_getVersion($input, $currentVersion, $changes);
+        $releaseNotes = $changes->display();
+
+        $releaseName = $this->_getReleaseName($input);
+        $isDraft = !$input->getOption('publish');
+
+        return new Release($changes, $currentVersion, $newVersion, $releaseName, $releaseNotes, $targetBranch, $isDraft);
+    }
+
+    private function _getChangesInRange(GithubClient $client, $startCommitish, $endCommitish, callable $changePrompter = null)
+    {
+        $commitGraph = new GithubCommitGraph($client->getCommitsInRange($startCommitish, $endCommitish));
+        $leadingCommits = $commitGraph->firstParents();
+        $changeListFactory = new ChangeListFactory(new ChangeFactory($changePrompter));
+
+        return $changeListFactory->createFromCommits($leadingCommits);
     }
 
     /**
@@ -118,19 +200,18 @@ class BuildRelease extends Command
      * Gets the tag this release is based off of.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
-     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
      * @param string $releaseBranch The branch to find releases on, or null to find tag from any branch.
      * @return string The base tag name.
      */
-    private function _getBaseTagName(InputInterface $input, PromptFactory $promptFactory, GithubClient $client, $releaseBranch)
+    private function _getBaseTagName(InputInterface $input, GithubClient $client, $releaseBranch)
     {
         $tag = $input->getOption('previous-tag-name');
         if ($tag) {
             return $tag;
         }
 
-        return $promptFactory->invoke('Please enter the base tag', $client->getLatestReleaseTagName($releaseBranch));
+        return $client->getLatestReleaseTagName($releaseBranch);
     }
 
     /**
@@ -169,91 +250,50 @@ class BuildRelease extends Command
      * The user may specify an exact version with the given auto-complete versions being given as suggestions.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
-     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
-     * @param \Guywithnose\ReleaseNotes\Version $currentVersion The current version.
-     * @param array $suggestedVersions The auto-complete versions for user suggestions.
+     * @param \Guywithnose\ReleaseNotes\Version $currentVersion The previous release's version.
+     * @param \Guywithnose\ReleaseNotes\Change\ChangeList $changes The changes in this release.
      * @return \Guywithnose\ReleaseNotes\Version The new version.
      */
-    private function _getVersion(InputInterface $input, PromptFactory $promptFactory, Version $currentVersion, array $suggestedVersions)
+    private function _getVersion(InputInterface $input, Version $currentVersion, ChangeList $changes)
     {
-        $version = $input->getOption('release-version');
-        if ($version) {
-            return new Version($version);
-        }
+        $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $changes);
+        $bestSuggested = empty($suggestedVersions) ? null : $suggestedVersions[0];
 
-        return new Version(
-            $promptFactory->invoke(
-                "Version Number (current: {$currentVersion})",
-                empty($suggestedVersions) ? null : $suggestedVersions[0],
-                $suggestedVersions,
-                null,
-                false
-            )
-        );
-    }
-
-    /**
-     * Gets the change type for this change.
-     *
-     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
-     * @param \Guywithnose\ReleaseNotes\Change\Change $change The change.
-     * @return string The type code of the change.
-     */
-    private function _selectTypeForChange(PromptFactory $promptFactory, Change $change)
-    {
-        return $promptFactory->invoke('What type of change is this PR?', $change->getType(), $change::types(), $change->displayFull());
+        return new Version($input->getOption('release-version') ?: $bestSuggested);
     }
 
     /**
      * Allows the user to amend the release notes.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
-     * @param \Nubs\Sensible\Editor $editor The editor loader for allowing the user to customize the release notes.
-     * @param \Symfony\Component\Process\ProcessBuilder $processBuilder The process builder for loading the editor.
      * @param string $releaseNotes The release notes to amend.
      * @return string The amended release notes.
      */
-    private function _amendReleaseNotes(InputInterface $input, Editor $editor, ProcessBuilder $processBuilder, $releaseNotes)
+    private function _amendReleaseNotes(InputInterface $input, $releaseNotes)
     {
+        $commandLocatorFactory = new WhichLocatorFactory();
+        $editorFactory = new EditorFactory($commandLocatorFactory->create());
+        $editor = $editorFactory->create();
+        $processBuilder = new ProcessBuilder();
         return $input->isInteractive() ? $editor->editData($processBuilder, $releaseNotes) : $releaseNotes;
     }
 
     /**
-     * Gets a name for the release.
+     * Get a name for the release.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
-     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @return string The name for the release.
      */
-    private function _getReleaseName(InputInterface $input, PromptFactory $promptFactory)
+    private function _getReleaseName(InputInterface $input)
     {
         $releaseName = $input->getOption('release-name');
         if ($releaseName) {
             return $releaseName;
         }
 
-        if ($promptFactory->invoke('Use a random release name?', true)) {
-            return $this->_selectRandomReleaseName($promptFactory);
-        }
-
-        return $promptFactory->invoke('Release Name');
-    }
-
-    /**
-     * Continually ask the user if a random release name should be used until they approve one.
-     *
-     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
-     * @return string The name for the release.
-     */
-    private function _selectRandomReleaseName(PromptFactory $promptFactory)
-    {
-        $releaseName = null;
         $randomNameGenerator = new Vgng();
-        do {
-            $releaseName = $randomNameGenerator->getName();
-        } while (!$promptFactory->invoke("Use release name '<boldquestion>{$releaseName}</boldquestion>'?", true));
 
-        return $releaseName;
+        return $randomNameGenerator->getName();
     }
 
     /**
@@ -266,8 +306,7 @@ class BuildRelease extends Command
      */
     private function _submitRelease(PromptFactory $promptFactory, GithubClient $client, Release $release)
     {
-        $prompt = $release->isDraft ? 'Submit draft?' : 'Publish release?';
-        if ($promptFactory->invoke($prompt, true, [], $release->previewFormat())) {
+        if ($promptFactory->invoke('Are you sure?', true, [], $release->previewFormat())) {
             $client->createRelease($release->githubFormat());
         }
     }
