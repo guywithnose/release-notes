@@ -88,4 +88,14 @@ class Version
     {
         return $this->_isSemantic ? (string)$this->_version : $this->_versionString;
     }
+
+    /**
+     * Returns the unprocessed version string directly.
+     *
+     * @return string The version string used to construct this version.
+     */
+    public function unprocessed()
+    {
+        return $this->_versionString;
+    }
 }
