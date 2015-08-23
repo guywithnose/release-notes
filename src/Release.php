@@ -55,7 +55,7 @@ class Release
      */
     public function previewFormat()
     {
-        return "{$this->_releaseName()}\n\n{$this->notes}";
+        return implode([$this->_actionDescription(), $this->_releaseName(), $this->notes], "\n\n");
     }
 
     /**
@@ -83,5 +83,17 @@ class Release
     protected function _releaseName()
     {
         return "Version {$this->version}" . ($this->name ? ": {$this->name}" : '');
+    }
+
+    /**
+     * Builds a description of the action being taken by this release.
+     *
+     * @return string The formatted action description.
+     */
+    protected function _actionDescription()
+    {
+        $action = $this->isDraft ? 'Drafting' : 'Publishing';
+        $releaseType = $this->version->isPreRelease() ? 'pre-release' : 'release';
+        return "{$action} {$releaseType} tag on {$this->targetCommitish}.";
     }
 }
