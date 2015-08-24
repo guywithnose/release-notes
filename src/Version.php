@@ -27,27 +27,14 @@ class Version
      */
     public function __construct($version = null)
     {
-        $this->_versionString = $version ?: '0.0.0';
+        $this->_versionString = $version ?: 'v0.0.0';
 
         try {
-            $this->_version = VersionParser::toVersion($this->_versionString);
+            $this->_version = VersionParser::toVersion(ltrim($this->_versionString, 'v'));
             $this->_isSemantic = true;
         } catch (InvalidStringRepresentationException $e) {
             $this->_isSemantic = false;
         }
-    }
-
-    /**
-     * Create the version from a string.
-     *
-     * The string will have any leading 'v' trimmed off of it.
-     *
-     * @param string $string The version with an optional leading v.
-     * @return self The version object.
-     */
-    public static function createFromString($string)
-    {
-        return new static(ltrim($string, 'v'));
     }
 
     /**
@@ -100,5 +87,15 @@ class Version
     public function __toString()
     {
         return $this->_isSemantic ? (string)$this->_version : $this->_versionString;
+    }
+
+    /**
+     * Returns the unprocessed version string directly.
+     *
+     * @return string The version string used to construct this version.
+     */
+    public function unprocessed()
+    {
+        return $this->_versionString;
     }
 }
