@@ -47,6 +47,7 @@ class GithubClient
         }
 
         $client->authenticate($token, null, Client::AUTH_HTTP_TOKEN);
+        $user = $client->api('user');
 
         return new static($client, $owner, $repo);
     }

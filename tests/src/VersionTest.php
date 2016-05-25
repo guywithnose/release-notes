@@ -90,7 +90,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
             [null, '0.0.0'],
             ['0.2.3', '0.2.3'],
             ['v2.0.16', '2.0.16'],
-            [3, 3],
+            [3, '3'],
         ];
     }
 

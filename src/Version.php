@@ -86,7 +86,7 @@ class Version
      */
     public function __toString()
     {
-        return $this->_isSemantic ? (string)$this->_version : $this->_versionString;
+        return $this->_isSemantic ? (string)$this->_version : (string)$this->_versionString;
     }
 
     /**
