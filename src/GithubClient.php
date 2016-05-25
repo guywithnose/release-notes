@@ -2,6 +2,7 @@
 namespace Guywithnose\ReleaseNotes;
 
 use Github\Client;
+use Github\HttpClient\HttpClient;
 use Github\ResultPager;
 
 class GithubClient
@@ -40,11 +41,21 @@ class GithubClient
      */
     public static function createWithToken($token, $owner, $repo, $apiUrl = null)
     {
-        $client = new Client();
+        $options = array(
+            'base_url' => 'https://api.github.com/',
+            'user_agent' => 'php-github-api (http://github.com/KnpLabs/php-github-api)',
+            'timeout' => 10,
+            'api_limit' => 5000,
+            'api_version' => 'v3',
+            'cache_dir' => null,
+            'ssl.certificate_authority' => dirname(__DIR__) . '/cafile.pem',
+        );
 
         if ($apiUrl !== null) {
-            $client->setOption('base_url', $apiUrl);
+            $options['base_url'] = $apiUrl;
         }
+
+        $client = new Client(new HttpClient($options));
 
         $client->authenticate($token, null, Client::AUTH_HTTP_TOKEN);
         $user = $client->api('user');
