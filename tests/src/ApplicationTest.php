@@ -24,10 +24,13 @@ class ApplicationTest extends \PHPUnit_Framework_TestCase
     public function testInvalidAccessToken()
     {
         try {
-            $this->getCommandTester([
-                'repo-owner' => 'guyithnose',
-                'repo-name' => 'release-notes'
-            ], 'foo\\n');
+            $this->getCommandTester(
+                [
+                    'repo-owner' => 'guyithnose',
+                    'repo-name' => 'release-notes',
+                ],
+                'foo\\n'
+            );
         } catch (\Exception $ex) {
             $output = $ex->getMessage();
             $this->assertContains('Bad credentials', $output);
@@ -47,6 +50,7 @@ class ApplicationTest extends \PHPUnit_Framework_TestCase
             $helper = $command->getHelper('dialog');
             $helper->setInputStream($this->getInputStream($input));
         }
+
         $commandTester->execute($options);
         return $commandTester;
     }

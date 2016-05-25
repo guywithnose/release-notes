@@ -30,6 +30,7 @@ class ChangeFactory
     public function createFromCommit(array $commit)
     {
         $typeSelector = $this->_typeSelector;
+        $change = null;
 
         if (count($commit['parents']) > 1) {
             $change = null;

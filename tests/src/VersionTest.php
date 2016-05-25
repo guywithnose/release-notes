@@ -67,7 +67,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
     public function testToString($versionString, $expectedVersionString)
     {
         $version = new Version($versionString);
-        $this->assertSame($expectedVersionString, (string) $version);
+        $this->assertSame($expectedVersionString, (string)$version);
     }
 
     /**

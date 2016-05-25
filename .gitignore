@@ -1,2 +1,4 @@
 /vendor
 .access_token
+/coverage
+clover.xml

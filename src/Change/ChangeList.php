@@ -37,8 +37,7 @@ class ChangeList
         $largestChangeIndex = count($types) - 1;
         $largestChange = null;
 
-        foreach ($this->_changes as $change)
-        {
+        foreach ($this->_changes as $change) {
             $changeIndex = $change->getType();
             if ($changeIndex < $largestChangeIndex) {
                 $largestChangeIndex = $changeIndex;

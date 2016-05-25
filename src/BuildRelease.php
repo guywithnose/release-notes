@@ -28,19 +28,38 @@ class BuildRelease extends Command
      */
     protected function configure()
     {
-        $this->setName('buildRelease')
-            ->setDescription('Prepare release notes for a github repository')
-            ->addArgument('repo-owner', InputArgument::REQUIRED, 'The github repository owner')
-            ->addArgument('repo-name', InputArgument::REQUIRED, 'The github repository name')
-            ->addOption('target-branch', null, InputOption::VALUE_REQUIRED, 'The name of the target branch', 'master')
-            ->addOption('previous-tag-name', null, InputOption::VALUE_REQUIRED, 'The name of the previous tag')
-            ->addOption('release-name', 'r', InputOption::VALUE_REQUIRED, 'The name to give the release')
-            ->addOption('release-version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')
-            ->addOption('access-token', 't', InputOption::VALUE_REQUIRED, 'The access token to use (overrides cache)')
-            ->addOption('publish', 'p', InputOption::VALUE_NONE, 'Immediately publish the release (instead of leaving as draft)')
-            ->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))
-            ->addOption('token-file', null, InputOption::VALUE_REQUIRED, 'The access token cache filename', '.access_token')
-            ->addOption('github-api', null, InputOption::VALUE_REQUIRED, 'The base url to the GitHub API');
+        $this->setName('buildRelease')->setDescription('Prepare release notes for a github repository')->addArgument(
+            'repo-owner',
+            InputArgument::REQUIRED,
+            'The github repository owner'
+        )->addArgument('repo-name', InputArgument::REQUIRED, 'The github repository name')->addOption(
+            'target-branch',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'The name of the target branch',
+            'master'
+        )->addOption('previous-tag-name', null, InputOption::VALUE_REQUIRED, 'The name of the previous tag')->addOption(
+            'release-name',
+            'r',
+            InputOption::VALUE_REQUIRED,
+            'The name to give the release'
+        )->addOption('release-version', 'R', InputOption::VALUE_REQUIRED, 'The version number to release')->addOption(
+            'access-token',
+            't',
+            InputOption::VALUE_REQUIRED,
+            'The access token to use (overrides cache)'
+        )->addOption(
+            'publish',
+            'p',
+            InputOption::VALUE_NONE,
+            'Immediately publish the release (instead of leaving as draft)'
+        )->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))->addOption(
+            'token-file',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'The access token cache filename',
+            '.access_token'
+        )->addOption('github-api', null, InputOption::VALUE_REQUIRED, 'The base url to the GitHub API');
     }
 
     /**
@@ -82,67 +101,85 @@ class BuildRelease extends Command
         $done = false;
         while (!$done) {
             $choice = $promptFactory->invoke('What would you like to do?', $defaultChoice, $choices, $release->previewFormat());
-            switch ($choice) {
-                case 'b':
-                    $targetBranch = $promptFactory->invoke('Please enter the target branch');
-                    $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
-                    $release = $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
-                    break;
-                case 't':
-                    $targetBranch = $release->targetCommitish;
-                    $baseTagName = $promptFactory->invoke('Please enter the base tag', $release->currentVersion);
-                    $release = $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
-                    break;
-                case 'c':
-                    $selectTypeForChange = function(Change $change) use($promptFactory) {
-                        return $promptFactory->invoke(
-                            'What type of change is this PR?',
-                            $change->getType(),
-                            $change::types(),
-                            $change->displayFull()
-                        );
-                    };
-                    $release->changes = $this->_getChangesInRange(
-                        $client,
-                        $release->currentVersion->unprocessed(),
-                        $release->targetCommitish,
-                        $selectTypeForChange
-                    );
-                    $release->version = $this->_getVersion($input, $release->currentVersion, $release->changes);
-                    $release->notes = $release->changes->display();
-                    break;
-                case 'v':
-                    $suggestedVersions = $this->_getSuggestedNewVersions($release->currentVersion, $release->changes);
-                    $currentVersion = $release->currentVersion;
-                    $defaultVersion = $release->version;
-                    $release->version = new Version(
-                        $promptFactory->invoke("Version Number (current: {$currentVersion})", $defaultVersion, $suggestedVersions, null, false)
-                    );
-                    break;
-                case 'n':
-                    $release->name = $promptFactory->invoke('Release Name', $release->name);
-                    break;
-                case 'r':
-                    $randomNameGenerator = new Vgng();
-                    $release->name = $randomNameGenerator->getName();
-                    break;
-                case 'e':
-                    $release->notes = $this->_amendReleaseNotes($input, $release->notes);
-                    break;
-                case 'd':
-                    $release->isDraft = true;
-                    $done = true;
-                    break;
-                case 'p':
-                    $release->isDraft = false;
-                    $done = true;
-                    break;
-                case 'q':
-                    return;
+            $result = $this->_handleUserInput($release, $promptFactory, $client, $input, $choice);
+            if ($result === true) {
+                $done = true;
+            } elseif ($result === false) {
+                return;
+            } elseif ($result !== null) {
+                $release = $result;
             }
         }
 
         $this->_submitRelease($promptFactory, $client, $release);
+    }
+
+    /**
+     * Handle user input
+     *
+     * @param
+     */
+    private function _handleUserInput($release, $promptFactory, $client, $input, $choice)
+    {
+        $targetBranch = $baseTagName = null;
+        switch ($choice) {
+            case 'b':
+                $targetBranch = $promptFactory->invoke('Please enter the target branch');
+                $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
+                return $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+                break;
+            case 't':
+                $targetBranch = $release->targetCommitish;
+                $baseTagName = $promptFactory->invoke('Please enter the base tag', 'v' . $release->currentVersion);
+                return $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+                break;
+            case 'c':
+                $selectTypeForChange = function(Change $change) use($promptFactory) {
+                    return $promptFactory->invoke(
+                        'What type of change is this PR?',
+                        $change->getType(),
+                        $change::types(),
+                        $change->displayFull()
+                    );
+                };
+                $release->changes = $this->_getChangesInRange(
+                    $client,
+                    $release->currentVersion->unprocessed(),
+                    $release->targetCommitish,
+                    $selectTypeForChange
+                );
+                $release->version = $this->_getVersion($input, $release->currentVersion, $release->changes);
+                $release->notes = $release->changes->display();
+                break;
+            case 'v':
+                $suggestedVersions = $this->_getSuggestedNewVersions($release->currentVersion, $release->changes);
+                $currentVersion = $release->currentVersion;
+                $defaultVersion = $release->version;
+                $release->version = new Version(
+                    $promptFactory->invoke("Version Number (current: {$currentVersion})", $defaultVersion, $suggestedVersions, null, false)
+                );
+                break;
+            case 'n':
+                $release->name = $promptFactory->invoke('Release Name', $release->name);
+                break;
+            case 'r':
+                $randomNameGenerator = new Vgng();
+                $release->name = $randomNameGenerator->getName();
+                break;
+            case 'e':
+                $release->notes = $this->_amendReleaseNotes($input, $release->notes);
+                break;
+            case 'd':
+                $release->isDraft = true;
+                return true;
+            case 'p':
+                $release->isDraft = false;
+                return true;
+            case 'q':
+                return false;
+        }
+
+        return null;
     }
 
     /**
