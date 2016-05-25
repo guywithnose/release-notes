@@ -1,20 +1,13 @@
 <?php
 namespace Guywithnose\ReleaseNotes;
 
-use Github\Client;
-use Github\HttpClient\HttpClient;
+use FlexyProject\GitHub\Client;
 use Github\ResultPager;
 
 class GithubClient
 {
     /** @type \Github\Client The github client. */
-    protected $_client;
-
-    /** @type string The owner name of the github repository. */
-    protected $_owner;
-
-    /** @type string The name of the github repository. */
-    protected $_repo;
+    protected $_repoReceiver;
 
     /**
      * Initialize the github client wrapper for the repository.
@@ -25,9 +18,9 @@ class GithubClient
      */
     public function __construct(Client $client, $owner, $repo)
     {
-        $this->_client = $client;
-        $this->_owner = $owner;
-        $this->_repo = $repo;
+        $this->_repoReceiver = $client->getReceiver(\FlexyProject\GitHub\Client::REPOSITORIES);
+        $this->_repoReceiver->setOwner($owner);
+        $this->_repoReceiver->setRepo($repo);
     }
 
     /**
@@ -38,27 +31,24 @@ class GithubClient
      * @param string $repo The name of the github repository.
      * @param string $apiUrl The base url to the github API if different from the main github site (i.e., GitHub Enterprise).
      * @return self The github client wrapper, authenticated against the API.
+     * @throws \Exception if the token is invalid
      */
     public static function createWithToken($token, $owner, $repo, $apiUrl = null)
     {
-        $options = array(
-            'base_url' => 'https://api.github.com/',
-            'user_agent' => 'php-github-api (http://github.com/KnpLabs/php-github-api)',
-            'timeout' => 10,
-            'api_limit' => 5000,
-            'api_version' => 'v3',
-            'cache_dir' => null,
-            'ssl.certificate_authority' => dirname(__DIR__) . '/cafile.pem',
-        );
+        $client = new Client();
 
         if ($apiUrl !== null) {
-            $options['base_url'] = $apiUrl;
+            $client->setApiUrl($apiUrl);
         }
 
-        $client = new Client(new HttpClient($options));
+        $client->setToken($token);
 
-        $client->authenticate($token, null, Client::AUTH_HTTP_TOKEN);
-        $user = $client->api('user');
+        // Verify that the token works
+        $users = $client->getReceiver(\FlexyProject\GitHub\Client::USERS);
+        $authenticatedUser = $users->getUser();
+        if (empty($authenticatedUser)) {
+            throw new \Exception('Bad credentials');
+        }
 
         return new static($client, $owner, $repo);
     }
@@ -71,7 +61,8 @@ class GithubClient
      */
     public function getLatestReleaseTagName($releaseBranch = null)
     {
-        $releases = $this->_client->api('repo')->releases()->all($this->_owner, $this->_repo);
+        $releasesReceiver = $this->_repoReceiver->getReceiver(\FlexyProject\GitHub\Receiver\Repositories::RELEASES);
+        $releases = $releasesReceiver->listReleases();
 
         foreach ($releases as $release) {
             if ($releaseBranch === null || $release['target_commitish'] === $releaseBranch) {
@@ -108,7 +99,8 @@ class GithubClient
      */
     public function getCommitsSinceTag($tagName, $branch = 'masterBranch')
     {
-        return $this->_client->api('repo')->commits()->compare($this->_owner, $this->_repo, $tagName, $branch)['commits'];
+        $commitsReceiver = $this->_repoReceiver->getReceiver(\FlexyProject\GitHub\Receiver\Repositories::COMMITS);
+        return $commitsReceiver->compareTwoCommits($tagName, $branch)['commits'];
     }
 
     /**
@@ -119,9 +111,8 @@ class GithubClient
      */
     public function getCommitsOnBranch($branch = 'master')
     {
-        $paginator = new ResultPager($this->_client);
-
-        return $paginator->fetchAll($this->_client->api('repo')->commits(), 'all', [$this->_owner, $this->_repo, ['sha' => $branch]]);
+        $commitsReceiver = $this->_repoReceiver->getReceiver(\FlexyProject\GitHub\Receiver\Repositories::COMMITS);
+        return $commitsReceiver->listCommits($branch);
     }
 
     /**
@@ -132,6 +123,14 @@ class GithubClient
      */
     public function createRelease(array $release)
     {
-        $this->_client->api('repo')->releases()->create($this->_owner, $this->_repo, $release);
+        $releasesReceiver = $this->_repoReceiver->getReceiver(\FlexyProject\GitHub\Receiver\Repositories::RELEASES);
+        $releasesReceiver->createRelease(
+            $release['tag_name'],
+            $release['target_commitish'],
+            $release['name'],
+            $release['body'],
+            $release['draft'],
+            $release['prerelease']
+        );
     }
 }
