@@ -55,7 +55,7 @@ class CalendarVersion implements VersionInterface
             }
         }
 
-        return [$now->format('\vy.n.') . $increment];
+        return [$now->format('y.n.') . $increment];
     }
 
     /**
