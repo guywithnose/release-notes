@@ -2,9 +2,10 @@
 namespace Guywithnose\ReleaseNotes\Tests;
 
 use Guywithnose\ReleaseNotes\Application;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-class ApplicationTest extends \PHPUnit_Framework_TestCase
+class ApplicationTest extends TestCase
 {
     /**
      * @var Application

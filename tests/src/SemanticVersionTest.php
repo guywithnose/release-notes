@@ -2,8 +2,9 @@
 namespace Guywithnose\ReleaseNotes\Tests;
 
 use Guywithnose\ReleaseNotes\SemanticVersion;
+use PHPUnit\Framework\TestCase;
 
-class SemanticVersionTest extends \PHPUnit_Framework_TestCase
+class SemanticVersionTest extends TestCase
 {
     /**
      * @param mixed $versionString The version

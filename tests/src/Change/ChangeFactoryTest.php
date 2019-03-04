@@ -3,8 +3,9 @@ namespace Guywithnose\ReleaseNotes\Tests\Change;
 
 use Guywithnose\ReleaseNotes\Change\Change;
 use Guywithnose\ReleaseNotes\Change\ChangeFactory;
+use PHPUnit\Framework\TestCase;
 
-class ChangeFactoryTest extends \PHPUnit_Framework_TestCase
+class ChangeFactoryTest extends TestCase
 {
     /**
      * @var array
