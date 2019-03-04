@@ -22,6 +22,11 @@ use Symfony\Component\Process\ProcessBuilder;
 class BuildRelease extends Command
 {
     /**
+     * @var VersionFactoryInterface $versionFactory
+     */
+    public $versionFactory;
+
+    /**
      * Configures the command's options.
      *
      * @return void
@@ -53,6 +58,11 @@ class BuildRelease extends Command
             'p',
             InputOption::VALUE_NONE,
             'Immediately publish the release (instead of leaving as draft)'
+        )->addOption(
+            'date-version',
+            'd',
+            InputOption::VALUE_NONE,
+            'Use date based versioning scheme (intead of symantic versioning scheme)'
         )->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))->addOption(
             'token-file',
             null,
@@ -71,6 +81,11 @@ class BuildRelease extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->versionFactory = new SemanticVersionFactory();
+        if ($input->getOption('date-version')) {
+            $this->versionFactory = new CalendarVersionFactory();
+        }
+
         $promptFactory = new PromptFactory($input, $output, $this->getHelperSet()->get('question'), $this->getHelperSet()->get('formatter'));
 
         $client = GithubClient::createWithToken(
@@ -155,7 +170,7 @@ class BuildRelease extends Command
                 $suggestedVersions = $this->_getSuggestedNewVersions($release->currentVersion, $release->changes);
                 $currentVersion = $release->currentVersion;
                 $defaultVersion = $release->version;
-                $release->version = new Version(
+                $release->version = $this->versionFactory->createVersion(
                     $promptFactory->invoke("Version Number (current: {$currentVersion})", $defaultVersion, $suggestedVersions, null, false)
                 );
                 break;
@@ -193,7 +208,7 @@ class BuildRelease extends Command
      */
     private function _buildRelease(InputInterface $input, GithubClient $client, $targetBranch, $baseTagName)
     {
-        $currentVersion = new Version($baseTagName);
+        $currentVersion = $this->versionFactory->createVersion($baseTagName);
 
         $changes = $this->_getChangesInRange($client, $baseTagName, $targetBranch);
         $newVersion = $this->_getVersion($input, $currentVersion, $changes);
@@ -256,15 +271,20 @@ class BuildRelease extends Command
      *
      * The order of the suggestions is driven off of the "largest" change in the change list.
      *
-     * @param \Guywithnose\ReleaseNotes\Version $currentVersion The current version.
+     * @param \Guywithnose\ReleaseNotes\VersionInterface $currentVersion The current version.
      * @param \Guywithnose\ReleaseNotes\Change\ChangeList $changes The changes.
      * @return array The semantic versions that work for a new version.
      */
-    private function _getSuggestedNewVersions(Version $currentVersion, ChangeList $changes)
+    private function _getSuggestedNewVersions(VersionInterface $currentVersion, ChangeList $changes)
     {
         $increments = $currentVersion->getSemanticIncrements();
-        if (empty($increments)) {
-            return [];
+
+        if (
+            !array_key_exists('major', $increments) ||
+            !array_key_exists('minor', $increments) ||
+            !array_key_exists('patch', $increments)
+        ) {
+            return $increments;
         }
 
         $largestChange = $changes->largestChange();
@@ -287,16 +307,16 @@ class BuildRelease extends Command
      * The user may specify an exact version with the given auto-complete versions being given as suggestions.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
-     * @param \Guywithnose\ReleaseNotes\Version $currentVersion The previous release's version.
+     * @param \Guywithnose\ReleaseNotes\VersionInterface $currentVersion The previous release's version.
      * @param \Guywithnose\ReleaseNotes\Change\ChangeList $changes The changes in this release.
-     * @return \Guywithnose\ReleaseNotes\Version The new version.
+     * @return \Guywithnose\ReleaseNotes\VersionInterface The new version.
      */
-    private function _getVersion(InputInterface $input, Version $currentVersion, ChangeList $changes)
+    private function _getVersion(InputInterface $input, VersionInterface $currentVersion, ChangeList $changes)
     {
         $suggestedVersions = $this->_getSuggestedNewVersions($currentVersion, $changes);
         $bestSuggested = empty($suggestedVersions) ? null : $suggestedVersions[0];
 
-        return new Version($input->getOption('release-version') ?: $bestSuggested);
+        return $this->versionFactory->createVersion($input->getOption('release-version') ?: $bestSuggested);
     }
 
     /**

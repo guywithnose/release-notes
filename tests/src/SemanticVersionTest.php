@@ -1,9 +1,9 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Tests;
 
-use Guywithnose\ReleaseNotes\Version;
+use Guywithnose\ReleaseNotes\SemanticVersion;
 
-class VersionTest extends \PHPUnit_Framework_TestCase
+class SemanticVersionTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * @param mixed $versionString The version
@@ -12,7 +12,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetSemanticIncrements($versionString, array $expectedIncrements)
     {
-        $version = new Version($versionString);
+        $version = new SemanticVersion($versionString);
         $this->assertSame($expectedIncrements, $version->getSemanticIncrements());
     }
 
@@ -39,7 +39,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
      */
     public function testIsPreRelease($versionString, $expectedPreReleaseStatus)
     {
-        $version = new Version($versionString);
+        $version = new SemanticVersion($versionString);
         $this->assertSame($expectedPreReleaseStatus, $version->isPreRelease());
     }
 
@@ -66,7 +66,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
      */
     public function testToString($versionString, $expectedVersionString)
     {
-        $version = new Version($versionString);
+        $version = new SemanticVersion($versionString);
         $this->assertSame($expectedVersionString, (string)$version);
     }
 
@@ -77,7 +77,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
      */
     public function testTagName($versionString, $expectedVersionString)
     {
-        $version = new Version($versionString);
+        $version = new SemanticVersion($versionString);
         $this->assertSame('v' . $expectedVersionString, $version->tagName());
     }
 
@@ -101,7 +101,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
      */
     public function testUnprocessed($versionString, $expectedVersionString)
     {
-        $version = new Version($versionString);
+        $version = new SemanticVersion($versionString);
         $this->assertSame($expectedVersionString, $version->unprocessed());
     }
 

@@ -8,10 +8,10 @@ class Release
     /** @type \Guywithnose\ReleaseNotes\Change\ChangeList The changes made for this release. */
     public $changes;
 
-    /** @type \Guywithnose\ReleaseNotes\Version The version of the previous release. */
+    /** @type \Guywithnose\ReleaseNotes\VersionInterface The version of the previous release. */
     public $currentVersion;
 
-    /** @type \Guywithnose\ReleaseNotes\Version The version of the release. */
+    /** @type \Guywithnose\ReleaseNotes\VersionInterface The version of the release. */
     public $version;
 
     /** @type string The name of the release. */
@@ -30,14 +30,22 @@ class Release
      * Initialize the release.
      *
      * @param \Guywithnose\ReleaseNotes\Change\ChangeList $changes The changes made for this release.
-     * @param \Guywithnose\ReleaseNotes\Version $version The version of the previous release.
-     * @param \Guywithnose\ReleaseNotes\Version $version The version of the release.
+     * @param \Guywithnose\ReleaseNotes\VersionInterface $version The version of the previous release.
+     * @param \Guywithnose\ReleaseNotes\VersionInterface $version The version of the release.
      * @param string $name The name of the release.
      * @param string $notes The formatted release notes.
      * @param string $targetCommitish The target commit/branch/etc. to tag.
      * @param boolean $isDraft Whether the release is a draft or if it should be published immediately.
      */
-    public function __construct(ChangeList $changes, Version $currentVersion, Version $version, $name, $notes, $targetCommitish, $isDraft)
+    public function __construct(
+        ChangeList $changes,
+        VersionInterface $currentVersion,
+        VersionInterface $version,
+        $name,
+        $notes,
+        $targetCommitish,
+        $isDraft
+    )
     {
         $this->changes = $changes;
         $this->currentVersion = $currentVersion;
