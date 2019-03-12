@@ -34,8 +34,8 @@
     },
     "require-dev": {
       "phpunit/phpunit": "~6.0",
-      "squizlabs/php_codesniffer": "~1.5.0",
-      "dominionenterprises/dws-coding-standard": "~1.4"
+      "squizlabs/php_codesniffer": "~2.6",
+      "traderinteractive/coding-standard": "2.1.0"
     },
     "bin": ["bin/buildRelease"],
     "autoload": {

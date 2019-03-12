@@ -8,7 +8,7 @@ if ($returnStatus !== 0) {
     exit(1);
 }
 
-$phpcs = './vendor/bin/phpcs --standard=' . __DIR__ . '/vendor/dominionenterprises/dws-coding-standard/DWS -n';
+$phpcs = './vendor/bin/phpcs --standard=' . __DIR__ . '/vendor/traderinteractive/coding-standard/DWS -n';
 $phpcs .= ' src tests *.php';
 passthru($phpcs, $returnStatus);
 if ($returnStatus !== 0) {

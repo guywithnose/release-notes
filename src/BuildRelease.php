@@ -226,7 +226,13 @@ class BuildRelease extends Command
         return new Release($changes, $currentVersion, $newVersion, $releaseName, $releaseNotes, $targetBranch, $isDraft);
     }
 
-    private function _getChangesInRange(InputInterface $input, GithubClient $client, $startCommitish, $endCommitish, callable $changePrompter = null)
+    private function _getChangesInRange(
+        InputInterface $input,
+        GithubClient $client,
+        $startCommitish,
+        $endCommitish,
+        callable $changePrompter = null
+    )
     {
         $commitDepth = 1;
         $argument = (int)$input->getOption('commit-depth');
