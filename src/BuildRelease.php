@@ -63,6 +63,11 @@ class BuildRelease extends Command
             'd',
             InputOption::VALUE_NONE,
             'Use date based versioning scheme (intead of symantic versioning scheme)'
+        )->addOption(
+            'commit-depth',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'Specify the number of levels to look for commits (default 1)'
         )->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))->addOption(
             'token-file',
             null,
@@ -158,6 +163,7 @@ class BuildRelease extends Command
                     );
                 };
                 $release->changes = $this->_getChangesInRange(
+                    $input,
                     $client,
                     $release->currentVersion->unprocessed(),
                     $release->targetCommitish,
@@ -210,7 +216,7 @@ class BuildRelease extends Command
     {
         $currentVersion = $this->versionFactory->createVersion($baseTagName);
 
-        $changes = $this->_getChangesInRange($client, $baseTagName, $targetBranch);
+        $changes = $this->_getChangesInRange($input, $client, $baseTagName, $targetBranch);
         $newVersion = $this->_getVersion($input, $currentVersion, $changes);
         $releaseNotes = $changes->display();
 
@@ -220,10 +226,16 @@ class BuildRelease extends Command
         return new Release($changes, $currentVersion, $newVersion, $releaseName, $releaseNotes, $targetBranch, $isDraft);
     }
 
-    private function _getChangesInRange(GithubClient $client, $startCommitish, $endCommitish, callable $changePrompter = null)
+    private function _getChangesInRange(InputInterface $input, GithubClient $client, $startCommitish, $endCommitish, callable $changePrompter = null)
     {
+        $commitDepth = 1;
+        $argument = (int)$input->getOption('commit-depth');
+        if ($argument >= 1) {
+            $commitDepth = $argument;
+        }
+
         $commitGraph = new GithubCommitGraph($client->getCommitsInRange($startCommitish, $endCommitish));
-        $leadingCommits = $commitGraph->firstParents();
+        $leadingCommits = $commitGraph->firstParents($commitDepth);
         $changeListFactory = new ChangeListFactory(new ChangeFactory($changePrompter));
 
         return $changeListFactory->createFromCommits($leadingCommits);
