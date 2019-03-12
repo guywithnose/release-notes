@@ -5,8 +5,9 @@ use Guywithnose\ReleaseNotes\Change\Change;
 use Guywithnose\ReleaseNotes\Change\ChangeFactory;
 use Guywithnose\ReleaseNotes\Change\ChangeList;
 use Guywithnose\ReleaseNotes\Change\ChangeListFactory;
+use PHPUnit\Framework\TestCase;
 
-class ChangeListFactoryTest extends \PHPUnit_Framework_TestCase
+class ChangeListFactoryTest extends TestCase
 {
     public function testCreateFromCommits()
     {

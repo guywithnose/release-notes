@@ -1,34 +1,36 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Tests;
 
-use Guywithnose\ReleaseNotes\Version;
+use Guywithnose\ReleaseNotes\CalendarVersion;
+use PHPUnit\Framework\TestCase;
 
-class VersionTest extends \PHPUnit_Framework_TestCase
+class CalendarVersionTest extends TestCase
 {
     /**
      * @param mixed $versionString The version
      * @param array $expectedIncrements An array with expected patch, minor, and major numbers
-     * @dataProvider provideSemanticIncrementExamples()
+     * @dataProvider provideCalendarIncrementExamples()
      */
-    public function testGetSemanticIncrements($versionString, array $expectedIncrements)
+    public function testGetCalendarIncrements($versionString, array $expectedIncrements)
     {
-        $version = new Version($versionString);
+        $version = new CalendarVersion($versionString);
         $this->assertSame($expectedIncrements, $version->getSemanticIncrements());
     }
 
     /**
      * @return array
      */
-    public function provideSemanticIncrementExamples()
+    public function provideCalendarIncrementExamples()
     {
+        $now = new \DateTime();
+        $y = $now->format('y');
+        $n = $now->format('n');
         return [
-            [null, ['patch' => '0.0.1', 'minor' => '0.1.0', 'major' => '1.0.0']],
-            ['0.0.0', ['patch' => '0.0.1', 'minor' => '0.1.0', 'major' => '1.0.0']],
-            ['1.2.3', ['patch' => '1.2.4', 'minor' => '1.3.0', 'major' => '2.0.0']],
-            ['2.0.0', ['patch' => '2.0.1', 'minor' => '2.1.0', 'major' => '3.0.0']],
-            ['3.0.1', ['patch' => '3.0.2', 'minor' => '3.1.0', 'major' => '4.0.0']],
-            ['v3.2.1', ['patch' => '3.2.2', 'minor' => '3.3.0', 'major' => '4.0.0']],
-            [3, []],
+            [null, ["{$y}.{$n}.0"]],
+            ['0.0.0', ["{$y}.{$n}.0"]],
+            ['1.1.6', ["{$y}.{$n}.0"]],
+            ["{$y}.0.3", ["{$y}.{$n}.0"]],
+            ["{$y}.{$n}.2", ["{$y}.{$n}.3"]],
         ];
     }
 
@@ -39,7 +41,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
      */
     public function testIsPreRelease($versionString, $expectedPreReleaseStatus)
     {
-        $version = new Version($versionString);
+        $version = new CalendarVersion($versionString);
         $this->assertSame($expectedPreReleaseStatus, $version->isPreRelease());
     }
 
@@ -49,13 +51,13 @@ class VersionTest extends \PHPUnit_Framework_TestCase
     public function providePreReleaseExamples()
     {
         return [
-            [null, true],
-            ['0.0.0', true],
-            ['0.2.3', true],
+            [null, false],
+            ['0.0.0', false],
+            ['0.2.3', false],
             ['1.2.3', false],
             ['2.1.0', false],
             ['v5.0.34', false],
-            [3, true],
+            [3, false],
         ];
     }
 
@@ -66,7 +68,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
      */
     public function testToString($versionString, $expectedVersionString)
     {
-        $version = new Version($versionString);
+        $version = new CalendarVersion($versionString);
         $this->assertSame($expectedVersionString, (string)$version);
     }
 
@@ -77,7 +79,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
      */
     public function testTagName($versionString, $expectedVersionString)
     {
-        $version = new Version($versionString);
+        $version = new CalendarVersion($versionString);
         $this->assertSame('v' . $expectedVersionString, $version->tagName());
     }
 
@@ -101,7 +103,7 @@ class VersionTest extends \PHPUnit_Framework_TestCase
      */
     public function testUnprocessed($versionString, $expectedVersionString)
     {
-        $version = new Version($versionString);
+        $version = new CalendarVersion($versionString);
         $this->assertSame($expectedVersionString, $version->unprocessed());
     }
 

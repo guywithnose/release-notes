@@ -21,18 +21,44 @@ class GithubCommitGraph
     /**
      * Filter the commits to just the first parents (i.e., merge commits).
      *
+     * @param int $depth optional depth of commits to get; default 1
+     *
      * @return array The commits along the left-most line of the commit graph.
      */
-    public function firstParents()
+    public function firstParents(int $depth = 1) : array
     {
+        $current = $this->_baseCommitNode();
+
+        return $this->getCommitsToDepth($current, $depth);
+    }
+
+    /**
+     * Get commits down to the specified depth.
+     *
+     * @param $baseCommitNode the commit to start processing with
+     * @param int $depth Depth of commits to go starting at 1
+     *
+     * @return array The commits along the left-most line of the commit graph.
+     */
+    public function getCommitsToDepth($baseCommitNode, int $depth) : array
+    {
+        if ($depth === 0) {
+            return [];
+        }
+
         $result = [];
 
-        $current = $this->_baseCommitNode();
+        $current = $baseCommitNode;
         while ($current !== null && $current->getAttribute('commit')) {
-            $result[] = $current->getAttribute('commit');
+            $commit = $current->getAttribute('commit');
+            $result[$commit['sha']] = $current->getAttribute('commit');
             $parents = $current->getVerticesEdgeTo();
             if ($parents->isEmpty()) {
                 break;
+            }
+
+            if (count($parents) > 1) {
+                $result = array_merge($result, $this->getCommitsToDepth($parents->getVertexLast(), $depth - 1));
             }
 
             $current = $parents->getVertexFirst();

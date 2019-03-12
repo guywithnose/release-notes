@@ -7,7 +7,7 @@ use Herrera\Version\Parser as VersionParser;
 use Herrera\Version\Version as HerreraVersion;
 use Herrera\Version\Exception\InvalidStringRepresentationException;
 
-class Version
+final class SemanticVersion implements VersionInterface
 {
     /** @type string The version as a string. */
     protected $_versionString;
