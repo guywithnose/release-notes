@@ -26,6 +26,7 @@
         "flexyproject/githubapi": "~1.0",
         "gregwar/cache": "~1.0",
         "herrera-io/version": "~1.1",
+        "lesstif/php-jira-rest-client": "^1.7.0",
         "nubs/random-name-generator": "~0.1.0",
         "nubs/sensible": "~0.5.0",
         "nubs/which": "~1.0",
