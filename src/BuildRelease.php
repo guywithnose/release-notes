@@ -384,7 +384,8 @@ class BuildRelease extends Command
     private function _submitRelease(PromptFactory $promptFactory, GithubClient $client, Release $release)
     {
         if ($promptFactory->invoke('Are you sure?', true, [], $release->previewFormat())) {
-            $client->createRelease($release->githubFormat());
+            $releaseUrl = $client->createRelease($release->githubFormat());
+            echo "Release created at: {$releaseUrl}\n";
         }
     }
 }

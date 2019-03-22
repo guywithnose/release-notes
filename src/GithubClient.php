@@ -119,12 +119,12 @@ class GithubClient
      * Submits the given release to github.
      *
      * @param array $release The release information.
-     * @return void
+     * @return string The release url
      */
-    public function createRelease(array $release)
+    public function createRelease(array $release): string
     {
         $releasesReceiver = $this->_repoReceiver->getReceiver(\FlexyProject\GitHub\Receiver\Repositories::RELEASES);
-        $releasesReceiver->createRelease(
+        $result = $releasesReceiver->createRelease(
             $release['tag_name'],
             $release['target_commitish'],
             $release['name'],
@@ -132,5 +132,7 @@ class GithubClient
             $release['draft'],
             $release['prerelease']
         );
+
+        return $result['html_url'];
     }
 }
