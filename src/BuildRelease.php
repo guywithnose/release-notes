@@ -104,30 +104,32 @@ class BuildRelease extends Command
         $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
         $release = $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
 
-        $defaultChoice = $input->getOption('publish') ? 'p' : 'd';
-        $choices = [
-            'b' => 'Change Target Branch',
-            't' => 'Change Base Tag',
-            'c' => 'Categorize Changes',
-            'v' => 'Change Version',
-            'n' => 'Change Release Name',
-            'r' => 'Randomize Release Name',
-            'e' => 'Edit Release Notes',
-            'd' => 'Submit Draft Release',
-            'p' => 'Publish Release',
-            'q' => 'Cancel and Quit',
-        ];
+        if (!$input->getOption('no-interaction')) {
+            $defaultChoice = $input->getOption('publish') ? 'p' : 'd';
+            $choices = [
+                'b' => 'Change Target Branch',
+                't' => 'Change Base Tag',
+                'c' => 'Categorize Changes',
+                'v' => 'Change Version',
+                'n' => 'Change Release Name',
+                'r' => 'Randomize Release Name',
+                'e' => 'Edit Release Notes',
+                'd' => 'Submit Draft Release',
+                'p' => 'Publish Release',
+                'q' => 'Cancel and Quit',
+            ];
 
-        $done = false;
-        while (!$done) {
-            $choice = $promptFactory->invoke('What would you like to do?', $defaultChoice, $choices, $release->previewFormat());
-            $result = $this->_handleUserInput($release, $promptFactory, $client, $input, $choice);
-            if ($result === true) {
-                $done = true;
-            } elseif ($result === false) {
-                return;
-            } elseif ($result !== null) {
-                $release = $result;
+            $done = false;
+            while (!$done) {
+                $choice = $promptFactory->invoke('What would you like to do?', $defaultChoice, $choices, $release->previewFormat());
+                $result = $this->_handleUserInput($release, $promptFactory, $client, $input, $choice);
+                if ($result === true) {
+                    $done = true;
+                } elseif ($result === false) {
+                    return;
+                } elseif ($result !== null) {
+                    $release = $result;
+                }
             }
         }
 
