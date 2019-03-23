@@ -1,10 +1,15 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Change;
 
+use Guywithnose\ReleaseNotes\Type\TypeManager;
+
 class ChangeFactory
 {
     /** @type callable A function that selects the type for a given change. */
     protected $_typeSelector;
+
+    /** @type TypeManager Types. */
+    protected $_typeManager;
 
     /**
      * Initialize the change factory with the type selector.
@@ -14,8 +19,9 @@ class ChangeFactory
      *
      * @param callable $typeSelector The type selector function.
      */
-    public function __construct(callable $typeSelector = null)
+    public function __construct(TypeManager $typeManager, callable $typeSelector = null)
     {
+        $this->typeManager = $typeManager;
         $this->_typeSelector = $typeSelector ?: function(Change $change) {
             return $change->getType();
         };
@@ -35,18 +41,18 @@ class ChangeFactory
         if (count($commit['parents']) > 1) {
             $change = null;
             if (preg_match('/Merge pull request #([0-9]*)[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)) {
-                $change = new PullRequest((int)$matches[1], $matches[2]);
+                $change = new PullRequest((int)$matches[1], $matches[2], $this->typeManager->getDefaultType());
             } elseif (preg_match('/Merge branch \'([^\']*)\'[^\n]*\n[^\n]*\n(.*)/s', $commit['commit']['message'], $matches)) {
-                $change = new Merge($matches[1], $matches[2]);
+                $change = new Merge($matches[1], $matches[2], $this->typeManager->getDefaultType());
             } else {
-                $change = new Change($commit['commit']['message']);
+                $change = new Change($commit['commit']['message'], $this->typeManager->getDefaultType());
             }
         } else {
-            $change = new Change($commit['commit']['message']);
+            $change = new Change($commit['commit']['message'], $this->typeManager->getDefaultType());
         }
 
         $type = $typeSelector($change);
-        if ($type === Change::TYPE_IGNORE) {
+        if ($type->getCode() === Change::TYPE_IGNORE) {
             return null;
         }
 

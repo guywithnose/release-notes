@@ -1,16 +1,13 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Change;
 
+use Guywithnose\ReleaseNotes\Type\Type;
+
 class Change
 {
-    const TYPE_BC = 'B';
-    const TYPE_MAJOR = 'M';
-    const TYPE_MINOR = 'm';
-    const TYPE_BUGFIX = 'b';
-    const TYPE_DEVELOPER = 'd';
     const TYPE_IGNORE = 'x';
 
-    /** @type string The type of the change.  One of the TYPE_* constants. */
+    /** @type Type The type of the change. */
     protected $_type;
 
     /** @type string A message describing the change. */
@@ -20,48 +17,32 @@ class Change
      * Initialize the change.
      *
      * @param string $message The pull request message.
-     * @param string $type The pull request type.  @see self::types().
+     * @param Type $type The pull request type.
      */
-    public function __construct($message, $type = null)
+    public function __construct($message, Type $type)
     {
         $this->_message = $message;
         $this->setType($type);
     }
 
     /**
-     * Returns the map between change types and a display representation of them.
-     *
-     * @return array The type map.
-     */
-    public static function types()
-    {
-        return [
-            static::TYPE_BC => 'Backwards Compatibility Breakers',
-            static::TYPE_MAJOR => 'Major Features',
-            static::TYPE_MINOR => 'Minor Features',
-            static::TYPE_BUGFIX => 'Bug Fixes',
-            static::TYPE_DEVELOPER => 'Developer Changes',
-            static::TYPE_IGNORE => 'Remove Pull Request from Release Notes',
-        ];
-    }
-
-    /**
      * Sets the type.
      *
-     * @param string|null $type The type - self::TYPE_MINOR used if type is null.
+     * @param Type $type The type
+     *
      * @return void
      */
-    public function setType($type)
+    public function setType(Type $type)
     {
-        $this->_type = $type ?: static::TYPE_MINOR;
+        $this->_type = $type;
     }
 
     /**
      * Get the type.
      *
-     * @return string The type code.
+     * @return Type The type code.
      */
-    public function getType()
+    public function getType() : Type
     {
         return $this->_type;
     }
@@ -73,7 +54,7 @@ class Change
      */
     public function displayType()
     {
-        return static::types()[$this->_type];
+        return $this->_type ? $this->_type->getDescription() : '';
     }
 
     /**

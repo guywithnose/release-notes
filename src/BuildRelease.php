@@ -7,6 +7,8 @@ use Guywithnose\ReleaseNotes\Change\ChangeFactory;
 use Guywithnose\ReleaseNotes\Change\ChangeList;
 use Guywithnose\ReleaseNotes\Change\ChangeListFactory;
 use Guywithnose\ReleaseNotes\Prompt\PromptFactory;
+use Guywithnose\ReleaseNotes\Type\Type;
+use Guywithnose\ReleaseNotes\Type\TypeManager;
 use Nubs\RandomNameGenerator\Vgng;
 use Nubs\Sensible\CommandFactory\EditorFactory;
 use Nubs\Sensible\Editor;
@@ -25,6 +27,11 @@ class BuildRelease extends Command
      * @var VersionFactoryInterface $versionFactory
      */
     public $versionFactory;
+
+    /**
+     * @var TypeManager $typeManager
+     */
+    public $typeManager;
 
     /**
      * Configures the command's options.
@@ -87,6 +94,7 @@ class BuildRelease extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->versionFactory = new SemanticVersionFactory();
+        $this->typeManager = TypeManager::getSemanticTypeManager();
         if ($input->getOption('date-version')) {
             $this->versionFactory = new CalendarVersionFactory();
         }
@@ -143,6 +151,7 @@ class BuildRelease extends Command
      */
     private function _handleUserInput($release, $promptFactory, $client, $input, $choice)
     {
+        $typeManager = $this->typeManager;
         $targetBranch = $baseTagName = null;
         switch ($choice) {
             case 'b':
@@ -156,13 +165,14 @@ class BuildRelease extends Command
                 return $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
                 break;
             case 'c':
-                $selectTypeForChange = function(Change $change) use($promptFactory) {
-                    return $promptFactory->invoke(
+                $selectTypeForChange = function(Change $change) use($promptFactory, $typeManager) {
+                    $choice = $promptFactory->invoke(
                         'What type of change is this PR?',
-                        $change->getType(),
-                        $change::types(),
+                        $change->getType()->getCode(),
+                        $this->typeManager->getTypesForCommand(),
                         $change->displayFull()
                     );
+                    return $typeManager->getTypeByCode($choice);
                 };
                 $release->changes = $this->_getChangesInRange(
                     $input,
@@ -244,7 +254,7 @@ class BuildRelease extends Command
 
         $commitGraph = new GithubCommitGraph($client->getCommitsInRange($startCommitish, $endCommitish));
         $leadingCommits = $commitGraph->firstParents($commitDepth);
-        $changeListFactory = new ChangeListFactory(new ChangeFactory($changePrompter));
+        $changeListFactory = new ChangeListFactory(new ChangeFactory($this->typeManager, $changePrompter), $this->typeManager);
 
         return $changeListFactory->createFromCommits($leadingCommits);
     }
@@ -308,13 +318,13 @@ class BuildRelease extends Command
         }
 
         $largestChange = $changes->largestChange();
-        $largestChangeType = $largestChange ? $largestChange->getType() : Change::TYPE_MINOR;
+        $largestChangeType = $largestChange ? $largestChange : $this->typeManager->getMinorType();
 
-        if ($largestChangeType === Change::TYPE_BC) {
+        if (Type::cmp($largestChangeType, $this->typeManager->getBCType()) >= 0) {
             return [$increments['major'], $increments['minor'], $increments['patch']];
         }
 
-        if ($largestChangeType === Change::TYPE_MAJOR) {
+        if (Type::cmp($largestChangeType, $this->typeManager->getMajorType()) >= 0) {
             return [$increments['minor'], $increments['patch'], $increments['major']];
         }
 

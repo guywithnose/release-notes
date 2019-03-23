@@ -3,6 +3,8 @@ namespace Guywithnose\ReleaseNotes\Tests\Change;
 
 use Guywithnose\ReleaseNotes\Change\Change;
 use Guywithnose\ReleaseNotes\Change\ChangeFactory;
+use Guywithnose\ReleaseNotes\Type\Type;
+use Guywithnose\ReleaseNotes\Type\TypeManager;
 use PHPUnit\Framework\TestCase;
 
 class ChangeFactoryTest extends TestCase
@@ -15,8 +17,9 @@ class ChangeFactoryTest extends TestCase
     public function testCreateFromCommit()
     {
         $commit = $this->getCommit();
-        $expectedChange = new Change($commit['commit']['message']);
-        $changeFactory = new ChangeFactory();
+        $typeManager = TypeManager::getSemanticTypeManager();
+        $expectedChange = new Change($commit['commit']['message'], $typeManager->getDefaultType());
+        $changeFactory = new ChangeFactory($typeManager);
         $actualChange = $changeFactory->createFromCommit($commit);
         $this->assertEquals($expectedChange, $actualChange);
     }

@@ -1,18 +1,25 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Change;
 
+use Guywithnose\ReleaseNotes\Type\Type;
+use Guywithnose\ReleaseNotes\Type\TypeManager;
+
 class ChangeList
 {
     /** @type array The changes. */
     protected $_changes;
+
+    /** @type TypeManager Types. */
+    protected $typeManager;
 
     /**
      * Initialize the change list.
      *
      * @param array $changes The changes
      */
-    public function __construct(array $changes)
+    public function __construct(TypeManager $typeManager, array $changes)
     {
+        $this->typeManager = $typeManager;
         $this->_changes = $changes;
     }
 
@@ -29,19 +36,20 @@ class ChangeList
     /**
      * Finds the largest change, by type, in the change list.
      *
-     * @return \Guywithnose\ReleaseNotes\Change|null The largest change.
+     * @return \Guywithnose\ReleaseNotes\ChangeInterface|null The largest change.
      */
     public function largestChange()
     {
-        $types = array_keys(Change::types());
-        $largestChangeIndex = count($types) - 1;
         $largestChange = null;
 
         foreach ($this->_changes as $change) {
             $changeIndex = $change->getType();
-            if ($changeIndex < $largestChangeIndex) {
-                $largestChangeIndex = $changeIndex;
-                $largestChange = $change;
+            if ($largestChange === null) {
+                $largestChange = $changeIndex;
+            }
+
+            if (Type::cmp($changeIndex, $largestChange) < 0) {
+                $largestChange = $change->getType();
             }
         }
 
@@ -55,7 +63,7 @@ class ChangeList
      */
     public function display()
     {
-        $types = Change::types();
+        $types = $this->typeManager->getTypesForCommand();
 
         $partitions = $this->_partitionByType();
         $sections = [];
@@ -78,11 +86,11 @@ class ChangeList
      */
     protected function _partitionByType()
     {
-        $types = Change::types();
+        $types = $this->typeManager->getTypesForCommand();
         $result = array_combine(array_keys($types), array_fill(0, count($types), []));
 
         foreach ($this->_changes as $change) {
-            $result[$change->getType()][] = $change;
+            $result[$change->getType()->getCode()][] = $change;
         }
 
         return array_filter($result);

@@ -1,6 +1,8 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Change;
 
+use Guywithnose\ReleaseNotes\Type\Type;
+
 class Merge extends Change
 {
     /** @type string The branch name. */
@@ -12,9 +14,9 @@ class Merge extends Change
      * @api
      * @param string $branch The merged branch.
      * @param string $message The merge message.
-     * @param string $type The merge type.  @see \Guywithnose\ReleaseNotes\Change::types().
+     * @param Type $type The merge type.
      */
-    public function __construct($branch, $message, $type = null)
+    public function __construct($branch, $message, Type $type)
     {
         parent::__construct($message, $type);
         $this->_branch = $branch;
