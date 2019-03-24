@@ -96,4 +96,17 @@ final class Type
 
         return $weightCmp;
     }
+
+    /**
+     * Used for reverse sorting object using usort.
+     *
+     * @param Type $a First type object.
+     * @param Type $b Second type object.
+     *
+     * @return int value indicating less than, equal to, or greater than
+     */
+    public static function rcmp(Type $a, Type $b) : int
+    {
+        return self::cmp($a, $b) * -1;
+    }
 }

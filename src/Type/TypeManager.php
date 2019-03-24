@@ -85,7 +85,7 @@ final class TypeManager
 
         $this->_types[] = $type;
 
-        usort($this->_types, [Type::class, 'cmp']);
+        usort($this->_types, [Type::class, 'rcmp']);
     }
 
     /**
