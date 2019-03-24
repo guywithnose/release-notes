@@ -11,70 +11,70 @@ final class TypeManager
     /**
      * @type Type the lowest type is Backward compatible breaking
      */
-    private $bcType;
+    private $_bcType;
 
     /**
      * @type Type the lowest type is a major change
      */
-    private $majorType;
+    private $_majorType;
 
     /**
      * @type Type the lowest type is a minor change
      */
-    private $minorType;
+    private $_minorType;
 
     /**
      * @type Type the default type to use
      */
-    private $defaultType;
+    private $_defaultType;
 
     public function __construct()
     {
         $this->_types = [];
-        $this->bcType = null;
-        $this->majorType = null;
-        $this->minorType = null;
-        $this->defaultType = null;
+        $this->_bcType = null;
+        $this->_majorType = null;
+        $this->_minorType = null;
+        $this->_defaultType = null;
     }
 
     public function setBCType(Type $type)
     {
-        $this->bcType = $type;
+        $this->_bcType = $type;
     }
 
     public function getBCType()
     {
-        return $this->bcType;
+        return $this->_bcType;
     }
 
     public function setMajorType(Type $type)
     {
-        $this->majorType = $type;
+        $this->_majorType = $type;
     }
 
     public function getMajorType()
     {
-        return $this->majorType;
+        return $this->_majorType;
     }
 
     public function setMinorType(Type $type)
     {
-        $this->minorType = $type;
+        $this->_minorType = $type;
     }
 
     public function getMinorType()
     {
-        return $this->minorType;
+        return $this->_minorType;
     }
 
     public function setDefaultType(Type $type)
     {
-        $this->defaultType = $type;
+        $this->_defaultType = $type;
     }
 
     public function getDefaultType()
     {
-        return $this->defaultType;
+        return $this->_defaultType;
     }
 
     public function add(Type $type)
@@ -100,7 +100,13 @@ final class TypeManager
         }
     }
 
-    public function getTypesForCommand() {
+    /**
+     * Returns an array of key values pairs for use in menu selection
+     *
+     * @return array
+     */
+    public function getTypesForCommand() : array
+    {
         $data = [];
         foreach ($this->_types as $type) {
             $data[$type->getCode()] = $type->getDescription();

@@ -9,7 +9,7 @@ class ChangeListFactory
     protected $_changeFactory;
 
     /** @type TypeManager Types. */
-    protected $typeManager;
+    protected $_typeManager;
 
     /**
      * Initialize the change list factory.
@@ -18,7 +18,7 @@ class ChangeListFactory
      */
     public function __construct(ChangeFactory $changeFactory, TypeManager $typeManager)
     {
-        $this->typeManager = $typeManager;
+        $this->_typeManager = $typeManager;
         $this->_changeFactory = $changeFactory;
     }
 
@@ -32,6 +32,6 @@ class ChangeListFactory
     {
         $commits = array_filter(array_map([$this->_changeFactory, 'createFromCommit'], $commits));
 
-        return new ChangeList($this->typeManager, $commits);
+        return new ChangeList($this->_typeManager, $commits);
     }
 }

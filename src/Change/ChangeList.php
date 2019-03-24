@@ -10,7 +10,7 @@ class ChangeList
     protected $_changes;
 
     /** @type TypeManager Types. */
-    protected $typeManager;
+    protected $_typeManager;
 
     /**
      * Initialize the change list.
@@ -19,7 +19,7 @@ class ChangeList
      */
     public function __construct(TypeManager $typeManager, array $changes)
     {
-        $this->typeManager = $typeManager;
+        $this->_typeManager = $typeManager;
         $this->_changes = $changes;
     }
 
@@ -63,7 +63,7 @@ class ChangeList
      */
     public function display()
     {
-        $types = $this->typeManager->getTypesForCommand();
+        $types = $this->_typeManager->getTypesForCommand();
 
         $partitions = $this->_partitionByType();
         $sections = [];
@@ -86,7 +86,7 @@ class ChangeList
      */
     protected function _partitionByType()
     {
-        $types = $this->typeManager->getTypesForCommand();
+        $types = $this->_typeManager->getTypesForCommand();
         $result = array_combine(array_keys($types), array_fill(0, count($types), []));
 
         foreach ($this->_changes as $change) {
