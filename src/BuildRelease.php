@@ -69,7 +69,7 @@ class BuildRelease extends Command
             'date-version',
             'd',
             InputOption::VALUE_NONE,
-            'Use date based versioning scheme (intead of symantic versioning scheme)'
+            'Use date based versioning scheme (instead of symantic versioning scheme)'
         )->addOption(
             'commit-depth',
             null,
