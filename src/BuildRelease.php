@@ -66,6 +66,11 @@ class BuildRelease extends Command
             InputOption::VALUE_NONE,
             'Immediately publish the release (instead of leaving as draft)'
         )->addOption(
+            'jira-types',
+            'j',
+            InputOption::VALUE_NONE,
+            'Use Jira type categorizations (instead of symantic versioning types)'
+        )->addOption(
             'date-version',
             'd',
             InputOption::VALUE_NONE,
@@ -95,6 +100,10 @@ class BuildRelease extends Command
     {
         $this->versionFactory = new SemanticVersionFactory();
         $this->typeManager = TypeManager::getSemanticTypeManager();
+        if ($input->getOption('jira-types')) {
+            $this->typeManager = TypeManager::getJiraTypeManager();
+        }
+
         if ($input->getOption('date-version')) {
             $this->versionFactory = new CalendarVersionFactory();
         }

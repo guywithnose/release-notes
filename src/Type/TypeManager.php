@@ -133,4 +133,24 @@ final class TypeManager
 
         return $manager;
     }
+
+    public static function getJiraTypeManager()
+    {
+        $manager = new TypeManager();
+
+        $manager->add(new Type('Epic', 'e', 'Epic Issue', 100));
+        $manager->add(new Type('Spike', 'S', 'Spike for Research', 80));
+        $manager->add(new Type('Story', 's', 'Story Enhancement', 60));
+        $manager->add(new Type('Bug', 'b', 'Bug fix', 40));
+        $manager->add(new Type('Maintenance', 'm', 'Maintenance change', 20));
+        $manager->add(new Type('Sub-task', 't', 'Sub-tasks', 10));
+        $manager->add(new Type('Ignore', 'x', 'Remove Pull Request from Release Notes', 0));
+
+        $manager->setBCType($manager->getTypeByCode('e'));
+        $manager->setMajorType($manager->getTypeByCode('s'));
+        $manager->setMinorType($manager->getTypeByCode('b'));
+        $manager->setDefaultType($manager->getTypeByCode('s'));
+
+        return $manager;
+    }
 }
