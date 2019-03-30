@@ -7,8 +7,10 @@ use Guywithnose\ReleaseNotes\Change\ChangeFactory;
 use Guywithnose\ReleaseNotes\Change\ChangeList;
 use Guywithnose\ReleaseNotes\Change\ChangeListFactory;
 use Guywithnose\ReleaseNotes\Prompt\PromptFactory;
+use Guywithnose\ReleaseNotes\Type\JiraTypeSelector;
 use Guywithnose\ReleaseNotes\Type\Type;
 use Guywithnose\ReleaseNotes\Type\TypeManager;
+use JiraRestApi\Issue\IssueService;
 use Nubs\RandomNameGenerator\Vgng;
 use Nubs\Sensible\CommandFactory\EditorFactory;
 use Nubs\Sensible\Editor;
@@ -75,6 +77,11 @@ class BuildRelease extends Command
             'j',
             InputOption::VALUE_NONE,
             'Use Jira type categorizations (instead of symantic versioning types)'
+        )->addOption(
+            'jira-lookup',
+            null,
+            InputOption::VALUE_NONE,
+            'Access a Jira rest API to determine change type.'
         )->addOption(
             'date-version',
             'd',
@@ -244,7 +251,13 @@ class BuildRelease extends Command
     {
         $currentVersion = $this->versionFactory->createVersion($baseTagName);
 
-        $changes = $this->_getChangesInRange($input, $client, $baseTagName, $targetBranch);
+        $typeSelector = null;
+        if ($input->getOption('jira-lookup')) {
+            $issueService = new IssueService();
+            $jiraTypeSelector = new JiraTypeSelector($this->typeManager, $issueService, '/\w+-\d+/');
+            $typeSelector = [$jiraTypeSelector, 'getChangeType'];
+        }
+        $changes = $this->_getChangesInRange($input, $client, $baseTagName, $targetBranch, $typeSelector);
         $newVersion = $this->_getVersion($input, $currentVersion, $changes);
         $releaseNotes = $changes->display();
 
