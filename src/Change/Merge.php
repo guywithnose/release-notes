@@ -27,7 +27,7 @@ class Merge extends Change
      *
      * @return string A short representation of the merge.
      */
-    public function displayShort()
+    public function displayShort() : string
     {
         return parent::displayShort() . "&nbsp;<sup>[{$this->_branch}]</sup>";
     }
@@ -37,7 +37,7 @@ class Merge extends Change
      *
      * @return string A long representation of the merge.
      */
-    public function displayFull()
+    public function displayFull() : string
     {
         return "### {$this->_branch}\n{$this->_message}";
     }

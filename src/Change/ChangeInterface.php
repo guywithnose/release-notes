@@ -1,6 +1,8 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Change;
 
+use Guywithnose\ReleaseNotes\Type\Type;
+
 interface ChangeInterface
 {
     /**

@@ -3,7 +3,7 @@ namespace Guywithnose\ReleaseNotes\Change;
 
 use Guywithnose\ReleaseNotes\Type\Type;
 
-class Change
+class Change implements ChangeInterface
 {
     const TYPE_IGNORE = 'x';
 
@@ -62,7 +62,7 @@ class Change
      *
      * @return string A short representation of the change.
      */
-    public function displayShort()
+    public function displayShort() : string
     {
         return '* ' . strtok($this->_message, "\n");
     }
@@ -72,7 +72,7 @@ class Change
      *
      * @return string A long representation of the change.
      */
-    public function displayFull()
+    public function displayFull() : string
     {
         return $this->_message;
     }
