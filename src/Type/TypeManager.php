@@ -101,6 +101,18 @@ final class TypeManager
     }
 
     /**
+     * @return Type|null the type if found or null otherwise
+     */
+    public function getTypeByName(string $name)
+    {
+        foreach ($this->_types as $type) {
+            if ($type->getName() === $name) {
+                return $type;
+            }
+        }
+    }
+
+    /**
      * Returns an array of key values pairs for use in menu selection
      *
      * @return array
@@ -145,11 +157,12 @@ final class TypeManager
         $manager->add(new Type('Maintenance', 'm', 'Maintenance change', 20));
         $manager->add(new Type('Sub-task', 't', 'Sub-tasks', 10));
         $manager->add(new Type('Ignore', 'x', 'Remove Pull Request from Release Notes', 0));
+        $manager->add(new Type('Unknown', 'u', 'Unknown type/No type selected', -10));
 
         $manager->setBCType($manager->getTypeByCode('e'));
         $manager->setMajorType($manager->getTypeByCode('s'));
         $manager->setMinorType($manager->getTypeByCode('b'));
-        $manager->setDefaultType($manager->getTypeByCode('s'));
+        $manager->setDefaultType($manager->getTypeByCode('u'));
 
         return $manager;
     }
