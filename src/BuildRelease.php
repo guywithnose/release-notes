@@ -66,6 +66,11 @@ class BuildRelease extends Command
             InputOption::VALUE_NONE,
             'Immediately publish the release (instead of leaving as draft)'
         )->addOption(
+            'dry-run',
+            null,
+            InputOption::VALUE_NONE,
+            'Output what would have been done but do not actually create any tags.'
+        )->addOption(
             'jira-types',
             'j',
             InputOption::VALUE_NONE,
@@ -98,6 +103,8 @@ class BuildRelease extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $input->setInteractive(!$input->getOption('no-interaction'));
+
         $this->versionFactory = new SemanticVersionFactory();
         $this->typeManager = TypeManager::getSemanticTypeManager();
         if ($input->getOption('jira-types')) {
@@ -121,7 +128,7 @@ class BuildRelease extends Command
         $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
         $release = $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
 
-        if (!$input->getOption('no-interaction')) {
+        if ($input->isInteractive()) {
             $defaultChoice = $input->getOption('publish') ? 'p' : 'd';
             $choices = [
                 'b' => 'Change Target Branch',
@@ -150,7 +157,7 @@ class BuildRelease extends Command
             }
         }
 
-        $this->_submitRelease($promptFactory, $client, $release);
+        $this->_submitRelease($input, $output, $promptFactory, $client, $release);
     }
 
     /**
@@ -395,16 +402,20 @@ class BuildRelease extends Command
     /**
      * Submits the given release to github.
      *
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
      * @param \Guywithnose\ReleaseNotes\Release $release The release information.
      * @return void
      */
-    private function _submitRelease(PromptFactory $promptFactory, GithubClient $client, Release $release)
+    private function _submitRelease(InputInterface $input, OutputInterface $output, PromptFactory $promptFactory, GithubClient $client, Release $release)
     {
-        if ($promptFactory->invoke('Are you sure?', true, [], $release->previewFormat())) {
+        $defaultResponse = !$input->getOption('dry-run');
+        $output->writeln($release->previewFormat());
+        if ($promptFactory->invoke('Are you sure?', $defaultResponse)) {
             $releaseUrl = $client->createRelease($release->githubFormat());
-            echo "Release created at: {$releaseUrl}\n";
+            $output->writeln("Release created at: {$releaseUrl}");
         }
     }
 }
