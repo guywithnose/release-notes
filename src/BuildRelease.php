@@ -91,7 +91,8 @@ class BuildRelease extends Command
             'commit-depth',
             null,
             InputOption::VALUE_REQUIRED,
-            'Specify the number of levels to look for commits (default 1)'
+            'Specify the number of levels to look for commits.',
+            1
         )->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))->addOption(
             'token-file',
             null,
