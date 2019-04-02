@@ -1,6 +1,8 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Change;
 
+use Guywithnose\ReleaseNotes\Type\Type;
+
 class PullRequest extends Change
 {
     /** @type int The pull request number. */
@@ -12,9 +14,9 @@ class PullRequest extends Change
      * @api
      * @param int $number The pull request number.
      * @param string $message The pull request message.
-     * @param string $type The pull request type.  @see \Guywithnose\ReleaseNotes\Change::types().
+     * @param Type $type The pull request type.
      */
-    public function __construct($number, $message, $type = null)
+    public function __construct($number, $message, Type $type)
     {
         parent::__construct($message, $type);
         $this->_number = $number;
@@ -25,7 +27,7 @@ class PullRequest extends Change
      *
      * @return string A short representation of the pull request.
      */
-    public function displayShort()
+    public function displayShort() : string
     {
         return parent::displayShort() . "&nbsp;<sup>[PR&nbsp;#{$this->_number}]</sup>";
     }
@@ -35,7 +37,7 @@ class PullRequest extends Change
      *
      * @return string A long representation of the pull request.
      */
-    public function displayFull()
+    public function displayFull() : string
     {
         return "### Pull Request #{$this->_number}\n{$this->_message}";
     }

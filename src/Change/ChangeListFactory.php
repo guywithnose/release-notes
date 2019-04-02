@@ -1,18 +1,24 @@
 <?php
 namespace Guywithnose\ReleaseNotes\Change;
 
+use Guywithnose\ReleaseNotes\Type\TypeManager;
+
 class ChangeListFactory
 {
     /** @type array The change factory. */
     protected $_changeFactory;
+
+    /** @type TypeManager Types. */
+    protected $_typeManager;
 
     /**
      * Initialize the change list factory.
      *
      * @param ChangeFactory $changeFactory The change factory used to create changes.
      */
-    public function __construct(ChangeFactory $changeFactory)
+    public function __construct(ChangeFactory $changeFactory, TypeManager $typeManager)
     {
+        $this->_typeManager = $typeManager;
         $this->_changeFactory = $changeFactory;
     }
 
@@ -26,6 +32,6 @@ class ChangeListFactory
     {
         $commits = array_filter(array_map([$this->_changeFactory, 'createFromCommit'], $commits));
 
-        return new ChangeList($commits);
+        return new ChangeList($this->_typeManager, $commits);
     }
 }

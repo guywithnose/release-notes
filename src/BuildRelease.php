@@ -7,6 +7,10 @@ use Guywithnose\ReleaseNotes\Change\ChangeFactory;
 use Guywithnose\ReleaseNotes\Change\ChangeList;
 use Guywithnose\ReleaseNotes\Change\ChangeListFactory;
 use Guywithnose\ReleaseNotes\Prompt\PromptFactory;
+use Guywithnose\ReleaseNotes\Type\JiraTypeSelector;
+use Guywithnose\ReleaseNotes\Type\Type;
+use Guywithnose\ReleaseNotes\Type\TypeManager;
+use JiraRestApi\Issue\IssueService;
 use Nubs\RandomNameGenerator\Vgng;
 use Nubs\Sensible\CommandFactory\EditorFactory;
 use Nubs\Sensible\Editor;
@@ -25,6 +29,11 @@ class BuildRelease extends Command
      * @var VersionFactoryInterface $versionFactory
      */
     public $versionFactory;
+
+    /**
+     * @var TypeManager $typeManager
+     */
+    public $typeManager;
 
     /**
      * Configures the command's options.
@@ -59,15 +68,31 @@ class BuildRelease extends Command
             InputOption::VALUE_NONE,
             'Immediately publish the release (instead of leaving as draft)'
         )->addOption(
+            'dry-run',
+            null,
+            InputOption::VALUE_NONE,
+            'Output what would have been done but do not actually create any tags.'
+        )->addOption(
+            'jira-types',
+            'j',
+            InputOption::VALUE_NONE,
+            'Use Jira type categorizations (instead of symantic versioning types)'
+        )->addOption(
+            'jira-lookup',
+            null,
+            InputOption::VALUE_NONE,
+            'Access a Jira rest API to determine change type.'
+        )->addOption(
             'date-version',
             'd',
             InputOption::VALUE_NONE,
-            'Use date based versioning scheme (intead of symantic versioning scheme)'
+            'Use date based versioning scheme (instead of symantic versioning scheme)'
         )->addOption(
             'commit-depth',
             null,
             InputOption::VALUE_REQUIRED,
-            'Specify the number of levels to look for commits (default 1)'
+            'Specify the number of levels to look for commits.',
+            1
         )->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))->addOption(
             'token-file',
             null,
@@ -86,7 +111,14 @@ class BuildRelease extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $input->setInteractive(!$input->getOption('no-interaction'));
+
         $this->versionFactory = new SemanticVersionFactory();
+        $this->typeManager = TypeManager::getSemanticTypeManager();
+        if ($input->getOption('jira-types')) {
+            $this->typeManager = TypeManager::getJiraTypeManager();
+        }
+
         if ($input->getOption('date-version')) {
             $this->versionFactory = new CalendarVersionFactory();
         }
@@ -102,9 +134,9 @@ class BuildRelease extends Command
 
         $targetBranch = $input->getOption('target-branch');
         $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
-        $release = $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+        $release = $this->_buildRelease($input, $output, $client, $targetBranch, $baseTagName);
 
-        if (!$input->getOption('no-interaction')) {
+        if ($input->isInteractive()) {
             $defaultChoice = $input->getOption('publish') ? 'p' : 'd';
             $choices = [
                 'b' => 'Change Target Branch',
@@ -122,7 +154,7 @@ class BuildRelease extends Command
             $done = false;
             while (!$done) {
                 $choice = $promptFactory->invoke('What would you like to do?', $defaultChoice, $choices, $release->previewFormat());
-                $result = $this->_handleUserInput($release, $promptFactory, $client, $input, $choice);
+                $result = $this->_handleUserInput($release, $promptFactory, $client, $input, $output, $choice);
                 if ($result === true) {
                     $done = true;
                 } elseif ($result === false) {
@@ -133,36 +165,43 @@ class BuildRelease extends Command
             }
         }
 
-        $this->_submitRelease($promptFactory, $client, $release);
+        $this->_submitRelease($input, $output, $promptFactory, $client, $release);
     }
 
     /**
      * Handle user input
      *
-     * @param
+     * @param \Guywithnose\ReleaseNotes\Release $release The release information.
+     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory to use.
+     * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param string $choice
      */
-    private function _handleUserInput($release, $promptFactory, $client, $input, $choice)
+    private function _handleUserInput(Release $release, PromptFactory $promptFactory, GithubClient $client, InputInterface $input, OutputInterface $output, string $choice)
     {
+        $typeManager = $this->typeManager;
         $targetBranch = $baseTagName = null;
         switch ($choice) {
             case 'b':
                 $targetBranch = $promptFactory->invoke('Please enter the target branch');
                 $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
-                return $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+                return $this->_buildRelease($input, $output, $client, $targetBranch, $baseTagName);
                 break;
             case 't':
                 $targetBranch = $release->targetCommitish;
                 $baseTagName = $promptFactory->invoke('Please enter the base tag', 'v' . $release->currentVersion);
-                return $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+                return $this->_buildRelease($input, $output, $client, $targetBranch, $baseTagName);
                 break;
             case 'c':
-                $selectTypeForChange = function(Change $change) use($promptFactory) {
-                    return $promptFactory->invoke(
+                $selectTypeForChange = function(Change $change) use($promptFactory, $typeManager) {
+                    $choice = $promptFactory->invoke(
                         'What type of change is this PR?',
-                        $change->getType(),
-                        $change::types(),
+                        $change->getType()->getCode(),
+                        $this->typeManager->getTypesForCommand(),
                         $change->displayFull()
                     );
+                    return $typeManager->getTypeByCode($choice);
                 };
                 $release->changes = $this->_getChangesInRange(
                     $input,
@@ -209,16 +248,23 @@ class BuildRelease extends Command
      * Builds the release without prompts based on command options and default values.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
      * @param string $targetBranch The target branch to build a release for.
      * @param string $baseTagName The tag name of the previous release on the target branch.
      * @return \Guywithnose\ReleaseNotes\Release The release object.
      */
-    private function _buildRelease(InputInterface $input, GithubClient $client, $targetBranch, $baseTagName)
+    private function _buildRelease(InputInterface $input, OutputInterface $output, GithubClient $client, $targetBranch, $baseTagName)
     {
         $currentVersion = $this->versionFactory->createVersion($baseTagName);
 
-        $changes = $this->_getChangesInRange($input, $client, $baseTagName, $targetBranch);
+        $typeSelector = null;
+        if ($input->getOption('jira-lookup')) {
+            $issueService = new IssueService();
+            $jiraTypeSelector = new JiraTypeSelector($this->typeManager, $issueService, '/\w+-\d+/', $output);
+            $typeSelector = [$jiraTypeSelector, 'getChangeType'];
+        }
+        $changes = $this->_getChangesInRange($input, $client, $baseTagName, $targetBranch, $typeSelector);
         $newVersion = $this->_getVersion($input, $currentVersion, $changes);
         $releaseNotes = $changes->display();
 
@@ -244,7 +290,7 @@ class BuildRelease extends Command
 
         $commitGraph = new GithubCommitGraph($client->getCommitsInRange($startCommitish, $endCommitish));
         $leadingCommits = $commitGraph->firstParents($commitDepth);
-        $changeListFactory = new ChangeListFactory(new ChangeFactory($changePrompter));
+        $changeListFactory = new ChangeListFactory(new ChangeFactory($this->typeManager, $changePrompter), $this->typeManager);
 
         return $changeListFactory->createFromCommits($leadingCommits);
     }
@@ -308,13 +354,13 @@ class BuildRelease extends Command
         }
 
         $largestChange = $changes->largestChange();
-        $largestChangeType = $largestChange ? $largestChange->getType() : Change::TYPE_MINOR;
+        $largestChangeType = $largestChange ? $largestChange : $this->typeManager->getMinorType();
 
-        if ($largestChangeType === Change::TYPE_BC) {
+        if (Type::cmp($largestChangeType, $this->typeManager->getBCType()) >= 0) {
             return [$increments['major'], $increments['minor'], $increments['patch']];
         }
 
-        if ($largestChangeType === Change::TYPE_MAJOR) {
+        if (Type::cmp($largestChangeType, $this->typeManager->getMajorType()) >= 0) {
             return [$increments['minor'], $increments['patch'], $increments['major']];
         }
 
@@ -376,16 +422,20 @@ class BuildRelease extends Command
     /**
      * Submits the given release to github.
      *
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
      * @param \Guywithnose\ReleaseNotes\Release $release The release information.
      * @return void
      */
-    private function _submitRelease(PromptFactory $promptFactory, GithubClient $client, Release $release)
+    private function _submitRelease(InputInterface $input, OutputInterface $output, PromptFactory $promptFactory, GithubClient $client, Release $release)
     {
-        if ($promptFactory->invoke('Are you sure?', true, [], $release->previewFormat())) {
+        $defaultResponse = !$input->getOption('dry-run');
+        $output->writeln($release->previewFormat());
+        if ($promptFactory->invoke('Are you sure?', $defaultResponse)) {
             $releaseUrl = $client->createRelease($release->githubFormat());
-            echo "Release created at: {$releaseUrl}\n";
+            $output->writeln("Release created at: {$releaseUrl}");
         }
     }
 }
