@@ -134,7 +134,7 @@ class BuildRelease extends Command
 
         $targetBranch = $input->getOption('target-branch');
         $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
-        $release = $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+        $release = $this->_buildRelease($input, $output, $client, $targetBranch, $baseTagName);
 
         if ($input->isInteractive()) {
             $defaultChoice = $input->getOption('publish') ? 'p' : 'd';
@@ -154,7 +154,7 @@ class BuildRelease extends Command
             $done = false;
             while (!$done) {
                 $choice = $promptFactory->invoke('What would you like to do?', $defaultChoice, $choices, $release->previewFormat());
-                $result = $this->_handleUserInput($release, $promptFactory, $client, $input, $choice);
+                $result = $this->_handleUserInput($release, $promptFactory, $client, $input, $output, $choice);
                 if ($result === true) {
                     $done = true;
                 } elseif ($result === false) {
@@ -171,9 +171,14 @@ class BuildRelease extends Command
     /**
      * Handle user input
      *
-     * @param
+     * @param \Guywithnose\ReleaseNotes\Release $release The release information.
+     * @param \Guywithnose\ReleaseNotes\Prompt\PromptFactory $promptFactory The prompt factory to use.
+     * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
+     * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
+     * @param string $choice
      */
-    private function _handleUserInput($release, $promptFactory, $client, $input, $choice)
+    private function _handleUserInput(Release $release, PromptFactory $promptFactory, GithubClient $client, InputInterface $input, OutputInterface $output, string $choice)
     {
         $typeManager = $this->typeManager;
         $targetBranch = $baseTagName = null;
@@ -181,12 +186,12 @@ class BuildRelease extends Command
             case 'b':
                 $targetBranch = $promptFactory->invoke('Please enter the target branch');
                 $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
-                return $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+                return $this->_buildRelease($input, $output, $client, $targetBranch, $baseTagName);
                 break;
             case 't':
                 $targetBranch = $release->targetCommitish;
                 $baseTagName = $promptFactory->invoke('Please enter the base tag', 'v' . $release->currentVersion);
-                return $this->_buildRelease($input, $client, $targetBranch, $baseTagName);
+                return $this->_buildRelease($input, $output, $client, $targetBranch, $baseTagName);
                 break;
             case 'c':
                 $selectTypeForChange = function(Change $change) use($promptFactory, $typeManager) {
@@ -243,19 +248,20 @@ class BuildRelease extends Command
      * Builds the release without prompts based on command options and default values.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
      * @param string $targetBranch The target branch to build a release for.
      * @param string $baseTagName The tag name of the previous release on the target branch.
      * @return \Guywithnose\ReleaseNotes\Release The release object.
      */
-    private function _buildRelease(InputInterface $input, GithubClient $client, $targetBranch, $baseTagName)
+    private function _buildRelease(InputInterface $input, OutputInterface $output, GithubClient $client, $targetBranch, $baseTagName)
     {
         $currentVersion = $this->versionFactory->createVersion($baseTagName);
 
         $typeSelector = null;
         if ($input->getOption('jira-lookup')) {
             $issueService = new IssueService();
-            $jiraTypeSelector = new JiraTypeSelector($this->typeManager, $issueService, '/\w+-\d+/');
+            $jiraTypeSelector = new JiraTypeSelector($this->typeManager, $issueService, '/\w+-\d+/', $output);
             $typeSelector = [$jiraTypeSelector, 'getChangeType'];
         }
         $changes = $this->_getChangesInRange($input, $client, $baseTagName, $targetBranch, $typeSelector);

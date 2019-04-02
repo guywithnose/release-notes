@@ -4,6 +4,7 @@ namespace Guywithnose\ReleaseNotes\Type;
 use JiraRestApi\Issue\IssueService;
 use JiraRestApi\JiraException;
 use Guywithnose\ReleaseNotes\Change\ChangeInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 final class JiraTypeSelector
 {
@@ -28,12 +29,14 @@ final class JiraTypeSelector
      * @param TypeManager  $typeManager  Type name or short description.
      * @param IssueService $issueService Single letter code used for choosing this type in a menu
      * @param string       $pattern      Longer description of type.
+     * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      */
-    public function __construct(TypeManager $typeManager, IssueService $issueService, string $pattern)
+    public function __construct(TypeManager $typeManager, IssueService $issueService, string $pattern, OutputInterface $output)
     {
         $this->_typeManager = $typeManager;
         $this->_issueService = $issueService;
         $this->_pattern = $pattern;
+        $this->_output = $output;
     }
 
     /**
@@ -55,7 +58,7 @@ final class JiraTypeSelector
                         return $type;
                     }
                 } catch (JiraException $e) {
-                    echo "could not find issue" . PHP_EOL;
+                    $this->_output->writeln("Could not find Jira issue {$key}", OutputInterface::VERBOSITY_DEBUG);
                 }
             }
         }
