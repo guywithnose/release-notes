@@ -10,6 +10,7 @@ use Guywithnose\ReleaseNotes\Prompt\PromptFactory;
 use Guywithnose\ReleaseNotes\Type\JiraTypeSelector;
 use Guywithnose\ReleaseNotes\Type\Type;
 use Guywithnose\ReleaseNotes\Type\TypeManager;
+use JiraRestApi\Configuration\ArrayConfiguration;
 use JiraRestApi\Issue\IssueService;
 use Nubs\RandomNameGenerator\Vgng;
 use Nubs\Sensible\CommandFactory\EditorFactory;
@@ -22,6 +23,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\ProcessBuilder;
+use TraderInteractive\Util;
 
 class BuildRelease extends Command
 {
@@ -260,10 +262,27 @@ class BuildRelease extends Command
 
         $typeSelector = null;
         if ($input->getOption('jira-lookup')) {
-            $issueService = new IssueService();
+            try {
+                $jiraHost = Util::ensureNot(false, getenv('JIRA_HOST'), 'JIRA_HOST not defined');
+                $jiraUser = Util::ensureNot(false, getenv('JIRA_USER'), 'JIRA_USER not defined');
+                $jiraPass = Util::ensureNot(false, getenv('JIRA_PASS'), 'JIRA_PASS not defined');
+                $issueService = new IssueService(
+                    new ArrayConfiguration(
+                        [
+                            'jiraHost' => $jiraHost,
+                            'jiraUser' => $jiraUser,
+                            'jiraPassword' => $jiraPass,
+                        ]
+                    )
+                );
+            } catch (\Exception $e) {
+                $issueService = new IssueService();
+            }
+
             $jiraTypeSelector = new JiraTypeSelector($this->typeManager, $issueService, '/\w+-\d+/', $output);
             $typeSelector = [$jiraTypeSelector, 'getChangeType'];
         }
+
         $changes = $this->_getChangesInRange($input, $client, $baseTagName, $targetBranch, $typeSelector);
         $newVersion = $this->_getVersion($input, $currentVersion, $changes);
         $releaseNotes = $changes->display();

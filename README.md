@@ -35,11 +35,20 @@ If you wish to use the tool with a differnt API version or a private GitHub
 Enterprise server then you can use `--github-api` argument option to change the base URL the tool uses for making API calls.
 
 ## Jira Integration
-Jira integration currently requires that you create a .env file that contains
-the server url, username, and password that you are accessing jira as.
+Jira integration currently requires that you either create a .env file or define three
+environment variables:
+```bash
+JIRA_HOST="https://jira.example.com"
+JIRA_USER="yourusername"
+JIRA_PASS="yourpassword"
+```
 
-Start by copying .env.dist to .env and modifying with your information.
+These are the server url, username, and password that you are accessing jira as.
+
+You can either define these variables or copy `.env.dist` to `.env` and modify it
+with your information.
 
 Using the `--jira-types` and `--jira-lookup` argument options will attempt to
 find Jira issue numbers within the commit messages use for generating the notes
-and then query the server.
+and then query the server. If you pass the `--jira-lookup` argument, the three
+environment variables are required.
