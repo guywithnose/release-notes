@@ -55,6 +55,8 @@ final class JiraTypeSelector
                     $issuetype = $issue->fields->issuetype->name;
                     $type = $this->_typeManager->getTypeByName($issuetype);
                     if ($type !== null) {
+                        $host = $this->_issueService->getConfiguration()->getJiraHost();
+                        $change->setLink("{$host}/browse/{$key}");
                         return $type;
                     }
                 } catch (JiraException $e) {

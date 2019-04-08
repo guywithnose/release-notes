@@ -13,6 +13,9 @@ class Change implements ChangeInterface
     /** @type string A message describing the change. */
     protected $_message;
 
+    /** @type string A link to the change. */
+    protected $_link = '';
+
     /**
      * Initialize the change.
      *
@@ -48,6 +51,28 @@ class Change implements ChangeInterface
     }
 
     /**
+     * Sets the link.
+     *
+     * @param string $link The link
+     *
+     * @return void
+     */
+    public function setLink(string $link)
+    {
+        $this->_link = $link;
+    }
+
+    /**
+     * Get the link.
+     *
+     * @return string The link.
+     */
+    public function getLink() : string
+    {
+        return $this->_link;
+    }
+
+    /**
      * Get the displayable type.
      *
      * @return string The displayable type.
@@ -64,6 +89,10 @@ class Change implements ChangeInterface
      */
     public function displayShort() : string
     {
+        if (!empty($this->getLink())) {
+            return '* [' . strtok($this->_message, "\n") . "]({$this->getLink()})";
+        }
+
         return '* ' . strtok($this->_message, "\n");
     }
 

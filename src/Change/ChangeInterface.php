@@ -22,6 +22,22 @@ interface ChangeInterface
     public function getType() : Type;
 
     /**
+     * Sets the link.
+     *
+     * @param string $link The link
+     *
+     * @return void
+     */
+    public function setLink(string $link);
+
+    /**
+     * Get the link.
+     *
+     * @return string The link.
+     */
+    public function getLink() : string;
+
+    /**
      * Returns a short markdown snippet of the change for use in release notes.
      *
      * @return string A short representation of the change.
