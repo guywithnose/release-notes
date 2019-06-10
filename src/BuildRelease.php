@@ -13,10 +13,8 @@ use Guywithnose\ReleaseNotes\Type\TypeManager;
 use JiraRestApi\Issue\IssueService;
 use Nubs\RandomNameGenerator\Vgng;
 use Nubs\Sensible\CommandFactory\EditorFactory;
-use Nubs\Sensible\Editor;
 use Nubs\Which\LocatorFactory\PlatformLocatorFactory as WhichLocatorFactory;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -178,7 +176,14 @@ class BuildRelease extends Command
      * @param \Symfony\Component\Console\Output\OutputInterface $output The command output.
      * @param string $choice
      */
-    private function _handleUserInput(Release $release, PromptFactory $promptFactory, GithubClient $client, InputInterface $input, OutputInterface $output, string $choice)
+    private function _handleUserInput(
+        Release $release,
+        PromptFactory $promptFactory,
+        GithubClient $client,
+        InputInterface $input,
+        OutputInterface $output,
+        string $choice
+    )
     {
         $typeManager = $this->typeManager;
         $targetBranch = $baseTagName = null;
@@ -253,6 +258,8 @@ class BuildRelease extends Command
      * @param string $targetBranch The target branch to build a release for.
      * @param string $baseTagName The tag name of the previous release on the target branch.
      * @return \Guywithnose\ReleaseNotes\Release The release object.
+     *
+     * @throws \Exception if tag already exists
      */
     private function _buildRelease(InputInterface $input, OutputInterface $output, GithubClient $client, $targetBranch, $baseTagName)
     {
@@ -264,8 +271,13 @@ class BuildRelease extends Command
             $jiraTypeSelector = new JiraTypeSelector($this->typeManager, $issueService, '/\w+-\d+/', $output);
             $typeSelector = [$jiraTypeSelector, 'getChangeType'];
         }
+
         $changes = $this->_getChangesInRange($input, $client, $baseTagName, $targetBranch, $typeSelector);
         $newVersion = $this->_getVersion($input, $currentVersion, $changes);
+        if ($client->tagExists("v{$newVersion}")) {
+            throw new \Exception("Tag v{$newVersion} already exists.  Please delete tag v{$newVersion} to continue.");
+        }
+
         $releaseNotes = $changes->display();
 
         $releaseName = $this->_getReleaseName($input);
@@ -429,7 +441,13 @@ class BuildRelease extends Command
      * @param \Guywithnose\ReleaseNotes\Release $release The release information.
      * @return void
      */
-    private function _submitRelease(InputInterface $input, OutputInterface $output, PromptFactory $promptFactory, GithubClient $client, Release $release)
+    private function _submitRelease(
+        InputInterface $input,
+        OutputInterface $output,
+        PromptFactory $promptFactory,
+        GithubClient $client,
+        Release $release
+    )
     {
         $defaultResponse = !$input->getOption('dry-run');
         $output->writeln($release->previewFormat());
