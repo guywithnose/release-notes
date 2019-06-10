@@ -6,7 +6,7 @@ use Github\ResultPager;
 
 class GithubClient
 {
-    /** @type \Github\Client The github client. */
+    /** @type FlexyProject\GitHub\Receiver\Repositories The repositories receiver. */
     protected $_repoReceiver;
 
     /**
@@ -71,6 +71,26 @@ class GithubClient
         }
 
         return null;
+    }
+
+    /**
+     * Check it a tag already exists on a repo.
+     *
+     * @param string $tagName The tag name to check
+     *
+     * @return bool True if the tag exists
+     */
+    public function tagExists(string $tagName) : bool
+    {
+        $tags = $this->_repoReceiver->listTags();
+
+        foreach ($tags as $tag) {
+            if ($tagName === $tag['name']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
