@@ -46,7 +46,7 @@ class GithubClient
         // Verify that the token works
         $users = $client->getReceiver(\FlexyProject\GitHub\Client::USERS);
         $authenticatedUser = $users->getUser();
-        if (isset($authenticatedUser['message']) && $authenticatedUser['message'] === 'Bad credentials') {
+        if (isset($authenticatedUser['message']) && $authenticatedUser['message'] === 'Requires authentication') {
             throw new \Exception('Bad credentials');
         }
 
