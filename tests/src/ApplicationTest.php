@@ -48,7 +48,7 @@ class ApplicationTest extends TestCase
         $command = $this->getApplication()->find('buildRelease');
         $commandTester = new CommandTester($command);
         if ($input) {
-            $helper = $command->getHelper('dialog');
+            $helper = $command->getHelper('question');
             $helper->setInputStream($this->getInputStream($input));
         }
 
