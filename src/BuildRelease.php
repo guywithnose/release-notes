@@ -131,7 +131,7 @@ class BuildRelease extends Command
         );
 
         $targetBranch = $input->getOption('target-branch');
-        $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
+        $baseTagName = $this->_getBaseTagName($input, $client);
         $release = $this->_buildRelease($input, $output, $client, $targetBranch, $baseTagName);
 
         if ($input->isInteractive()) {
@@ -190,7 +190,7 @@ class BuildRelease extends Command
         switch ($choice) {
             case 'b':
                 $targetBranch = $promptFactory->invoke('Please enter the target branch');
-                $baseTagName = $this->_getBaseTagName($input, $client, $targetBranch);
+                $baseTagName = $this->_getBaseTagName($input, $client);
                 return $this->_buildRelease($input, $output, $client, $targetBranch, $baseTagName);
                 break;
             case 't':
@@ -331,17 +331,16 @@ class BuildRelease extends Command
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input The command input.
      * @param \Guywithnose\ReleaseNotes\GithubClient $client The github client.
-     * @param string $releaseBranch The branch to find releases on, or null to find tag from any branch.
      * @return string The base tag name.
      */
-    private function _getBaseTagName(InputInterface $input, GithubClient $client, $releaseBranch)
+    private function _getBaseTagName(InputInterface $input, GithubClient $client)
     {
         $tag = $input->getOption('previous-tag-name');
         if ($tag) {
             return $tag;
         }
 
-        return $client->getLatestReleaseTagName($releaseBranch);
+        return $client->getLatestReleaseTagName();
     }
 
     /**
