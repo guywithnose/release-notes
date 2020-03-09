@@ -153,6 +153,7 @@ final class TypeManager
         $manager->add(new Type('Epic', 'e', 'Epic Issue', 100));
         $manager->add(new Type('Spike', 'S', 'Spike for Research', 80));
         $manager->add(new Type('Story', 's', 'Story Enhancement', 60));
+        $manager->add(new Type('Task', 'k', 'Task', 50));
         $manager->add(new Type('Bug', 'b', 'Bug fix', 40));
         $manager->add(new Type('Maintenance', 'm', 'Maintenance change', 20));
         $manager->add(new Type('Sub-task', 't', 'Sub-tasks', 10));
