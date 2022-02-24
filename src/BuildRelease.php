@@ -8,6 +8,7 @@ use Guywithnose\ReleaseNotes\Change\ChangeList;
 use Guywithnose\ReleaseNotes\Change\ChangeListFactory;
 use Guywithnose\ReleaseNotes\Prompt\PromptFactory;
 use Guywithnose\ReleaseNotes\Type\JiraTypeSelector;
+use Guywithnose\ReleaseNotes\Type\PullRequestTypeSelector;
 use Guywithnose\ReleaseNotes\Type\Type;
 use Guywithnose\ReleaseNotes\Type\TypeManager;
 use JiraRestApi\Issue\IssueService;
@@ -91,6 +92,11 @@ class BuildRelease extends Command
             InputOption::VALUE_REQUIRED,
             'Specify the number of levels to look for commits.',
             1
+        )->addOption(
+            'pull-requests-only',
+            null,
+            InputOption::VALUE_NONE,
+            'Only include Pull Requests in the change list.'
         )->addOption('cache-dir', null, InputOption::VALUE_REQUIRED, 'The access token cache location', dirname(__DIR__))->addOption(
             'token-file',
             null,
@@ -270,6 +276,11 @@ class BuildRelease extends Command
             $issueService = new IssueService();
             $jiraTypeSelector = new JiraTypeSelector($this->typeManager, $issueService, '/\w+-\d+/', $output);
             $typeSelector = [$jiraTypeSelector, 'getChangeType'];
+        }
+
+        if ($input->getOption('pull-requests-only')) {
+            $prTypeSelector = new PullRequestTypeSelector($this->typeManager, $typeSelector);
+            $typeSelector = [$prTypeSelector, 'getChangeType'];
         }
 
         $changes = $this->_getChangesInRange($input, $client, $baseTagName, $targetBranch, $typeSelector);
