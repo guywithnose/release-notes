@@ -1,4 +1,4 @@
-# Release Notes builer tool
+# Release Notes builder tool
 
 Look at the commits on a github repo and generate release notes using the
 commits that have occurred since the last tag.

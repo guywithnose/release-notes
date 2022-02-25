@@ -136,7 +136,7 @@ final class TypeManager
         $manager->add(new Type('Minor', 'm', 'Minor Features', 60));
         $manager->add(new Type('Bug', 'b', 'Bug Fixes', 40));
         $manager->add(new Type('Developer', 'd', 'Developer Changes', 20));
-        $manager->add(new Type('Ignore', 'x', 'Remove Pull Request from Release Notes', 0));
+        $manager->add(new Type('Ignore', 'x', 'Remove Commit from Release Notes', 0));
 
         $manager->setBCType($manager->getTypeByCode('B'));
         $manager->setMajorType($manager->getTypeByCode('M'));
@@ -157,7 +157,7 @@ final class TypeManager
         $manager->add(new Type('Bug', 'b', 'Bug fix', 40));
         $manager->add(new Type('Maintenance', 'm', 'Maintenance change', 20));
         $manager->add(new Type('Sub-task', 't', 'Sub-tasks', 10));
-        $manager->add(new Type('Ignore', 'x', 'Remove Pull Request from Release Notes', 0));
+        $manager->add(new Type('Ignore', 'x', 'Remove Commit from Release Notes', 0));
         $manager->add(new Type('Unknown', 'u', 'Unknown type/No type selected', -10));
 
         $manager->setBCType($manager->getTypeByCode('e'));
